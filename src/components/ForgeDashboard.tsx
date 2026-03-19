@@ -4,6 +4,7 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
 import { Buffer } from 'buffer';
 import DeadlineTimer from './DeadlineTimer';
+import IronMatrix from './IronMatrix';
 
 // The IDL Blueprint
 import idl from '../idl/idl.json';
@@ -307,6 +308,11 @@ export default function ForgeDashboard() {
               {/* THE GUILLOTINE TIMER */}
               <div className="mt-2 relative z-10">
                  <DeadlineTimer />
+              </div>
+
+              {/* THE IRON MATRIX (STREAK TRACKER) */}
+              <div className="mt-2 relative z-10">
+                 <IronMatrix daysCommitted={activeStake.daysCommitted} daysCompleted={2} />
               </div>
 
               {/* THE GEOLOCATION ORACLE CONTROLS */}

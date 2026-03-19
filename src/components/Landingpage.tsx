@@ -1,5 +1,6 @@
 import ForgeDashboard from './ForgeDashboard';
 import Leaderboard from './Leaderboard';
+import Graveyard from './Graveyard';
 
 export default function LandingPage() {
   return (
@@ -37,6 +38,13 @@ export default function LandingPage() {
             </svg>
           </div>
         </div>
+      </div>
+
+      {/* ========================================= */}
+      {/* THE GRAVEYARD (Full-Width Slashing Feed) */}
+      {/* ========================================= */}
+      <div className="relative z-40 w-full">
+        <Graveyard />
       </div>
 
       {/* ========================================= */}
