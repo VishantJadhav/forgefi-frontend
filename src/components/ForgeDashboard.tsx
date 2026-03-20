@@ -312,7 +312,7 @@ export default function ForgeDashboard() {
 
               {/* THE IRON MATRIX (STREAK TRACKER) */}
               <div className="mt-2 relative z-10">
-                 <IronMatrix daysCommitted={activeStake.daysCommitted} daysCompleted={2} />
+                <IronMatrix daysCommitted={activeStake.daysCommitted} daysCompleted={activeStake.daysCompleted} />
               </div>
 
               {/* THE GEOLOCATION ORACLE CONTROLS */}
