@@ -258,149 +258,170 @@ export default function ForgeDashboard() {
   };
 
   return (
-    <div className="w-full flex justify-center relative z-10">
-      {!connected ? (
-        <div className="w-full max-w-md animate-fade-in mx-auto flex justify-center">
-          <WalletMultiButton className="!bg-red-600 hover:!bg-red-700 transition-colors rounded-none font-black uppercase tracking-widest px-8 py-6 w-full !justify-center items-center text-lg shadow-[0_0_30px_rgba(220,38,38,0.2)]" />
-        </div>
-      ) : (
-        <div className="w-full max-w-md flex flex-col gap-6 animate-fade-in">
-          
-          {/* Wallet Info Card */}
-          <div className="flex flex-col items-center border-2 border-zinc-800 bg-zinc-900/80 p-6 backdrop-blur-md shadow-xl relative z-50">
-            <h2 className="text-sm font-black mb-3 uppercase text-zinc-400 tracking-widest">Active Lifter</h2>
-            <p className="text-green-500 mb-6 font-mono bg-black px-4 py-2 text-sm border border-green-900/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]">
-              {publicKey?.toBase58().slice(0, 4)}...{publicKey?.toBase58().slice(-4)}
-            </p>
-            <WalletMultiButton className="!bg-zinc-800 hover:!bg-zinc-700 transition-colors rounded-none font-bold uppercase text-xs w-full !justify-center items-center border border-zinc-700" />
+    <>
+      {/* THE DECOY SCROLL BUTTON */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          const target = document.getElementById("staking-forge-section");
+          if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }}
+        // Using fixed positioning to pin it to the viewport so it hovers perfectly over your background video
+        className="fixed top-6 right-6 z-50 flex items-center justify-center 
+                   bg-black/80 backdrop-blur-sm border border-red-800 
+                   text-red-500 font-bold tracking-[0.2em] uppercase 
+                   px-6 py-3 transition-all duration-300 ease-in-out cursor-pointer
+                   hover:bg-red-900 hover:text-white hover:border-red-500 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)]"
+      >
+        Connect Wallet
+      </button>
+
+      {/* THE MAIN INTERFACE - Added the ID here as the anchor target */}
+      <div id="staking-forge-section" className="w-full flex justify-center relative z-10 pt-16 pb-24">
+        {!connected ? (
+          <div className="w-full max-w-md animate-fade-in mx-auto flex justify-center">
+            <WalletMultiButton className="!bg-red-600 hover:!bg-red-700 transition-colors rounded-none font-black uppercase tracking-widest px-8 py-6 w-full !justify-center items-center text-lg shadow-[0_0_30px_rgba(220,38,38,0.2)]" />
           </div>
-
-
-          {/* DYNAMIC UI RENDERING */}
-          {isChecking ? (
-            <div className="border-2 border-zinc-800 bg-zinc-900/90 p-12 text-center text-zinc-500 font-mono uppercase tracking-widest animate-pulse shadow-2xl">
-              Scanning Blockchain...
+        ) : (
+          <div className="w-full max-w-md flex flex-col gap-6 animate-fade-in">
+            
+            {/* Wallet Info Card */}
+            <div className="flex flex-col items-center border-2 border-zinc-800 bg-zinc-900/80 p-6 backdrop-blur-md shadow-xl relative z-50">
+              <h2 className="text-sm font-black mb-3 uppercase text-zinc-400 tracking-widest">Active Lifter</h2>
+              <p className="text-green-500 mb-6 font-mono bg-black px-4 py-2 text-sm border border-green-900/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]">
+                {publicKey?.toBase58().slice(0, 4)}...{publicKey?.toBase58().slice(-4)}
+              </p>
+              <WalletMultiButton className="!bg-zinc-800 hover:!bg-zinc-700 transition-colors rounded-none font-bold uppercase text-xs w-full !justify-center items-center border border-zinc-700" />
             </div>
-          ) : activeStake ? (
-            <div className="border-2 border-red-900 bg-black p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
-              
-              <div className="flex justify-between items-center border-b-2 border-zinc-800 pb-4 relative z-10">
-                <h2 className="text-2xl font-black uppercase text-white tracking-tight">Active Protocol</h2>
-                <span className="bg-red-600 text-white text-[10px] font-black uppercase px-2 py-1 tracking-widest animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]">Live</span>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4 relative z-10">
-                <div className="border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col items-center">
-                  <span className="text-xs text-zinc-500 uppercase font-bold tracking-widest mb-1">Locked Vault</span>
-                  <span className="text-2xl font-black text-red-500 font-mono drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
-                    {(activeStake.stakeAmount.toNumber() / web3.LAMPORTS_PER_SOL).toFixed(2)} SOL
-                  </span>
+            {/* DYNAMIC UI RENDERING */}
+            {isChecking ? (
+              <div className="border-2 border-zinc-800 bg-zinc-900/90 p-12 text-center text-zinc-500 font-mono uppercase tracking-widest animate-pulse shadow-2xl">
+                Scanning Blockchain...
+              </div>
+            ) : activeStake ? (
+              <div className="border-2 border-red-900 bg-black p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
+                
+                <div className="flex justify-between items-center border-b-2 border-zinc-800 pb-4 relative z-10">
+                  <h2 className="text-2xl font-black uppercase text-white tracking-tight">Active Protocol</h2>
+                  <span className="bg-red-600 text-white text-[10px] font-black uppercase px-2 py-1 tracking-widest animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]">Live</span>
                 </div>
-                <div className="border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col items-center">
-                  <span className="text-xs text-zinc-500 uppercase font-bold tracking-widest mb-1">Commitment</span>
-                  <span className="text-2xl font-black text-white font-mono">
-                    {activeStake.daysCommitted} Days
-                  </span>
-                </div>
-              </div>
 
-              {/* THE GUILLOTINE TIMER */}
-              <div className="mt-2 relative z-10">
-                 <DeadlineTimer />
-              </div>
-
-              {/* THE IRON MATRIX (STREAK TRACKER) */}
-              <div className="mt-2 relative z-10">
-                <IronMatrix daysCommitted={activeStake.daysCommitted} daysCompleted={activeStake.daysCompleted} />
-              </div>
-
-              {/* THE GEOLOCATION ORACLE CONTROLS */}
-              <div className="flex flex-col gap-2 mt-4 relative z-10">
-                {!gymLocation ? (
-                  <button 
-                    onClick={calibrateGymLocation}
-                    className="w-full bg-blue-600/20 text-blue-400 border border-blue-900/50 font-black uppercase tracking-widest p-3 text-xs hover:bg-blue-600/30 transition-colors"
-                  >
-                    Set Current Location as Gym
-                  </button>
-                ) : (
-                  <div className="flex justify-between items-center bg-zinc-900 border border-green-900/50 p-2 px-4 mb-2">
-                    <span className="text-[10px] text-green-500 font-mono tracking-widest uppercase flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                      Gym Locked
+                <div className="grid grid-cols-2 gap-4 relative z-10">
+                  <div className="border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col items-center">
+                    <span className="text-xs text-zinc-500 uppercase font-bold tracking-widest mb-1">Locked Vault</span>
+                    <span className="text-2xl font-black text-red-500 font-mono drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                      {(activeStake.stakeAmount.toNumber() / web3.LAMPORTS_PER_SOL).toFixed(2)} SOL
                     </span>
+                  </div>
+                  <div className="border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col items-center">
+                    <span className="text-xs text-zinc-500 uppercase font-bold tracking-widest mb-1">Commitment</span>
+                    <span className="text-2xl font-black text-white font-mono">
+                      {activeStake.daysCommitted} Days
+                    </span>
+                  </div>
+                </div>
+
+                {/* THE GUILLOTINE TIMER */}
+                <div className="mt-2 relative z-10">
+                   <DeadlineTimer />
+                </div>
+
+                {/* THE IRON MATRIX (STREAK TRACKER) */}
+                <div className="mt-2 relative z-10">
+                  <IronMatrix daysCommitted={activeStake.daysCommitted} daysCompleted={activeStake.daysCompleted} />
+                </div>
+
+                {/* THE GEOLOCATION ORACLE CONTROLS */}
+                <div className="flex flex-col gap-2 mt-4 relative z-10">
+                  {!gymLocation ? (
                     <button 
                       onClick={calibrateGymLocation}
-                      className="text-[10px] text-zinc-500 hover:text-zinc-300 cursor-pointer uppercase tracking-widest underline decoration-zinc-700 underline-offset-4"
+                      className="w-full bg-blue-600/20 text-blue-400 border border-blue-900/50 font-black uppercase tracking-widest p-3 text-xs hover:bg-blue-600/30 transition-colors"
                     >
-                      Recalibrate
+                      Set Current Location as Gym
+                    </button>
+                  ) : (
+                    <div className="flex justify-between items-center bg-zinc-900 border border-green-900/50 p-2 px-4 mb-2">
+                      <span className="text-[10px] text-green-500 font-mono tracking-widest uppercase flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        Gym Locked
+                      </span>
+                      <button 
+                        onClick={calibrateGymLocation}
+                        className="text-[10px] text-zinc-500 hover:text-zinc-300 cursor-pointer uppercase tracking-widest underline decoration-zinc-700 underline-offset-4"
+                      >
+                        Recalibrate
+                      </button>
+                    </div>
+                  )}
+
+                  <button 
+                    onClick={handleVerify}
+                    disabled={isVerifying || !gymLocation}
+                    className={`w-full font-black uppercase tracking-widest p-5 transition-all border ${
+                      isVerifying || !gymLocation
+                        ? 'bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed' 
+                        : 'bg-zinc-900 text-white hover:bg-zinc-800 border-zinc-600 hover:border-zinc-400 shadow-[0_0_15px_rgba(255,255,255,0.05)] active:scale-[0.98]'
+                    }`}
+                  >
+                    {isVerifying ? 'Checking Location...' : 'Verify Workout'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="border-2 border-zinc-800 bg-zinc-900/90 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/5 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
+                
+                <h2 className="text-3xl font-black uppercase text-white border-b-2 border-zinc-800 pb-4 tracking-tight relative z-10">
+                  Lock Your Stake
+                </h2>
+                
+                <div className="flex flex-col gap-3 relative z-10 mb-2">
+                  <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
+                    Select Protocol
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button onClick={() => setDays(6)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 6 ? 'border-red-600 bg-red-600/10 text-red-500' : 'border-zinc-800 bg-black text-zinc-500'}`}>
+                      <span className="font-black text-lg">PPL</span>
+                      <span className="text-[10px] uppercase font-bold tracking-widest mt-1">6 Days</span>
+                    </button>
+                    <button onClick={() => setDays(4)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 4 ? 'border-red-600 bg-red-600/10 text-red-500' : 'border-zinc-800 bg-black text-zinc-500'}`}>
+                      <span className="font-black text-lg">U/L</span>
+                      <span className="text-[10px] uppercase font-bold tracking-widest mt-1">4 Days</span>
+                    </button>
+                    <button onClick={() => setDays(3)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 3 ? 'border-red-600 bg-red-600/10 text-red-500' : 'border-zinc-800 bg-black text-zinc-500'}`}>
+                      <span className="font-black text-lg">FB</span>
+                      <span className="text-[10px] uppercase font-bold tracking-widest mt-1">3 Days</span>
                     </button>
                   </div>
-                )}
+                </div>
 
-                <button 
-                  onClick={handleVerify}
-                  disabled={isVerifying || !gymLocation}
-                  className={`w-full font-black uppercase tracking-widest p-5 transition-all border ${
-                    isVerifying || !gymLocation
-                      ? 'bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed' 
-                      : 'bg-zinc-900 text-white hover:bg-zinc-800 border-zinc-600 hover:border-zinc-400 shadow-[0_0_15px_rgba(255,255,255,0.05)] active:scale-[0.98]'
-                  }`}
-                >
-                  {isVerifying ? 'Checking Location...' : 'Verify Workout'}
+                <div className="flex flex-col gap-2 relative z-10">
+                  <label className="text-xs font-black text-red-600 uppercase tracking-widest">Custom Commitment (Days)</label>
+                  <input type="number" value={days} onChange={(e) => setDays(Number(e.target.value))} className="bg-black border-2 border-zinc-800 text-white p-4 font-mono text-xl focus:outline-none focus:border-red-600 transition-colors w-full" min="1" max="30" />
+                </div>
+
+                <div className="flex flex-col gap-2 relative z-10">
+                  <label className="text-xs font-black text-red-600 uppercase tracking-widest">Stake Amount (SOL)</label>
+                  <div className="relative">
+                    <input type="number" value={stakeAmount} onChange={(e) => setStakeAmount(Number(e.target.value))} className="bg-black border-2 border-zinc-800 text-white p-4 font-mono text-xl focus:outline-none focus:border-red-600 transition-colors w-full pl-16" step="0.1" min="0.1" />
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-zinc-500 font-mono">SOL</span>
+                  </div>
+                </div>
+
+                <button onClick={handleStake} disabled={isStaking} className={`w-full text-white font-black uppercase tracking-widest p-5 mt-4 transition-all relative z-10 ${isStaking ? 'bg-zinc-600' : 'bg-red-600 hover:bg-red-500 shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] active:scale-[0.98]'}`}>
+                  {isStaking ? 'Awaiting Signature...' : 'Sign & Lock Contract'}
                 </button>
               </div>
-            </div>
-          ) : (
-            <div className="border-2 border-zinc-800 bg-zinc-900/90 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/5 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
-              
-              <h2 className="text-3xl font-black uppercase text-white border-b-2 border-zinc-800 pb-4 tracking-tight relative z-10">
-                Lock Your Stake
-              </h2>
-              
-              <div className="flex flex-col gap-3 relative z-10 mb-2">
-                <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
-                  Select Protocol
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button onClick={() => setDays(6)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 6 ? 'border-red-600 bg-red-600/10 text-red-500' : 'border-zinc-800 bg-black text-zinc-500'}`}>
-                    <span className="font-black text-lg">PPL</span>
-                    <span className="text-[10px] uppercase font-bold tracking-widest mt-1">6 Days</span>
-                  </button>
-                  <button onClick={() => setDays(4)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 4 ? 'border-red-600 bg-red-600/10 text-red-500' : 'border-zinc-800 bg-black text-zinc-500'}`}>
-                    <span className="font-black text-lg">U/L</span>
-                    <span className="text-[10px] uppercase font-bold tracking-widest mt-1">4 Days</span>
-                  </button>
-                  <button onClick={() => setDays(3)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 3 ? 'border-red-600 bg-red-600/10 text-red-500' : 'border-zinc-800 bg-black text-zinc-500'}`}>
-                    <span className="font-black text-lg">FB</span>
-                    <span className="text-[10px] uppercase font-bold tracking-widest mt-1">3 Days</span>
-                  </button>
-                </div>
-              </div>
+            )}
 
-              <div className="flex flex-col gap-2 relative z-10">
-                <label className="text-xs font-black text-red-600 uppercase tracking-widest">Custom Commitment (Days)</label>
-                <input type="number" value={days} onChange={(e) => setDays(Number(e.target.value))} className="bg-black border-2 border-zinc-800 text-white p-4 font-mono text-xl focus:outline-none focus:border-red-600 transition-colors w-full" min="1" max="30" />
-              </div>
-
-              <div className="flex flex-col gap-2 relative z-10">
-                <label className="text-xs font-black text-red-600 uppercase tracking-widest">Stake Amount (SOL)</label>
-                <div className="relative">
-                  <input type="number" value={stakeAmount} onChange={(e) => setStakeAmount(Number(e.target.value))} className="bg-black border-2 border-zinc-800 text-white p-4 font-mono text-xl focus:outline-none focus:border-red-600 transition-colors w-full pl-16" step="0.1" min="0.1" />
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-zinc-500 font-mono">SOL</span>
-                </div>
-              </div>
-
-              <button onClick={handleStake} disabled={isStaking} className={`w-full text-white font-black uppercase tracking-widest p-5 mt-4 transition-all relative z-10 ${isStaking ? 'bg-zinc-600' : 'bg-red-600 hover:bg-red-500 shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] active:scale-[0.98]'}`}>
-                {isStaking ? 'Awaiting Signature...' : 'Sign & Lock Contract'}
-              </button>
-            </div>
-          )}
-
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
