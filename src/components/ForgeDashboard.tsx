@@ -47,6 +47,26 @@ export default function ForgeDashboard() {
   const [activeStake, setActiveStake] = useState<any>(null);
   const [gymLocation, setGymLocation] = useState<{lat: number, lng: number} | null>(null);
 
+  // 4. Scroll State (For the vanishing Decoy Button)
+  const [showDecoy, setShowDecoy] = useState(true);
+
+  // ==========================================
+  // SCROLL LISTENER (The Vanishing Act)
+  // ==========================================
+  useEffect(() => {
+    const handleScroll = () => {
+      // If the user scrolls down more than 150px, fade out the button
+      if (window.scrollY > 150) {
+        setShowDecoy(false);
+      } else {
+        setShowDecoy(true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // ==========================================
   // MULTI-WALLET IDENTITY STORAGE
   // ==========================================
@@ -268,17 +288,18 @@ export default function ForgeDashboard() {
             target.scrollIntoView({ behavior: "smooth", block: "start" });
           }
         }}
-        // Using fixed positioning to pin it to the viewport so it hovers perfectly over your background video
-        className="fixed top-6 right-6 z-50 flex items-center justify-center 
+        // The dynamic classes at the end handle the smooth fade-out and disable the button clicks when invisible
+        className={`fixed top-6 right-6 z-50 flex items-center justify-center 
                    bg-black/80 backdrop-blur-sm border border-red-800 
                    text-red-500 font-bold tracking-[0.2em] uppercase 
-                   px-6 py-3 transition-all duration-300 ease-in-out cursor-pointer
-                   hover:bg-red-900 hover:text-white hover:border-red-500 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)]"
+                   px-6 py-3 transition-all duration-500 ease-in-out cursor-pointer
+                   hover:bg-red-900 hover:text-white hover:border-red-500 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)]
+                   ${showDecoy ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
       >
         Connect Wallet
       </button>
 
-      {/* THE MAIN INTERFACE - Added the ID here as the anchor target */}
+      {/* THE MAIN INTERFACE - The Anchor Target */}
       <div id="staking-forge-section" className="w-full flex justify-center relative z-10 pt-16 pb-24">
         {!connected ? (
           <div className="w-full max-w-md animate-fade-in mx-auto flex justify-center">
