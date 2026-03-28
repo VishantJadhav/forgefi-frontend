@@ -3,6 +3,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
 import { Buffer } from 'buffer';
+import toast, { Toaster } from 'react-hot-toast';
 import DeadlineTimer from './DeadlineTimer';
 import IronMatrix from './IronMatrix';
 
@@ -55,7 +56,6 @@ export default function ForgeDashboard() {
   // ==========================================
   useEffect(() => {
     const handleScroll = () => {
-      // If the user scrolls down more than 150px, fade out the button
       if (window.scrollY > 150) {
         setShowDecoy(false);
       } else {
@@ -70,7 +70,6 @@ export default function ForgeDashboard() {
   // ==========================================
   // MULTI-WALLET IDENTITY STORAGE
   // ==========================================
-  // Load saved gym location tied to the SPECIFIC WALLET
   useEffect(() => {
     if (publicKey) {
       const storageKey = `forgefi_gym_${publicKey.toBase58()}`;
@@ -79,7 +78,7 @@ export default function ForgeDashboard() {
       if (savedGym) {
         setGymLocation(JSON.parse(savedGym));
       } else {
-        setGymLocation(null); // Clear location if this wallet hasn't saved one
+        setGymLocation(null); 
       }
     } else {
       setGymLocation(null);
@@ -130,7 +129,7 @@ export default function ForgeDashboard() {
   // ==========================================
   const calibrateGymLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
+      toast.error("Geolocation is not supported by your browser.");
       return;
     }
     
@@ -144,11 +143,11 @@ export default function ForgeDashboard() {
           localStorage.setItem(storageKey, JSON.stringify(coords));
         }
         
-        alert(`Gym location secured for this wallet! Allowed radius is currently set to ${ALLOWED_DISTANCE_METERS} meters.`);
+        toast.success(`Gym location locked! Active Radius: ${ALLOWED_DISTANCE_METERS}m.`);
       },
       (error) => {
         console.error(error);
-        alert("Failed to get location. Please allow location permissions in your OS and browser settings.");
+        toast.error("Failed to get location. Allow permissions in settings.");
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 } 
     );
@@ -183,12 +182,12 @@ export default function ForgeDashboard() {
         })
         .rpc();
 
-      alert(`Stake locked successfully! TX: ${tx}`);
+      toast.success("Stake locked in the vault! Protocol Active.");
       await fetchStakeData(); 
 
     } catch (error) {
       console.error("Failed to lock stake:", error);
-      alert("Transaction failed. Check console for details.");
+      toast.error("Transaction failed or rejected by lifter.");
     } finally {
       setIsStaking(false);
     }
@@ -200,7 +199,7 @@ export default function ForgeDashboard() {
   const handleVerify = async () => {
     if (!publicKey || !signTransaction) return;
     if (!gymLocation) {
-      alert("Please calibrate your gym location first!");
+      toast.error("Please calibrate your gym location first!");
       return;
     }
 
@@ -216,7 +215,7 @@ export default function ForgeDashboard() {
         console.log(`User is ${Math.round(distance)} meters away from the gym.`);
 
         if (distance > ALLOWED_DISTANCE_METERS) {
-          alert(`ORACLE REJECTED: You are ${Math.round(distance)} meters away from the gym. Get to the iron.`);
+          toast.error(`ORACLE REJECTED: You are ${Math.round(distance)} meters away from the gym. Get to the iron.`);
           setIsVerifying(false);
           return;
         }
@@ -242,12 +241,12 @@ export default function ForgeDashboard() {
             } as any)
             .rpc();
 
-          alert(`Workout verified on-chain! TX: ${tx}`);
+          toast.success("Workout verified on-chain! Streak updated.");
           await fetchStakeData(); 
 
         } catch (error) {
           console.error("Failed to verify workout:", error);
-          alert("Verification failed. Check console for details.");
+          toast.error("Verification failed or rejected by lifter.");
         } finally {
           setIsVerifying(false);
         }
@@ -258,20 +257,20 @@ export default function ForgeDashboard() {
         
         switch(error.code) {
           case 1: 
-            errorMessage = "LOCATION BLOCKED: You denied GPS access. We cannot verify your workout. Turn on location permissions in your browser/OS settings and try again.";
+            errorMessage = "LOCATION BLOCKED: Turn on GPS permissions and try again.";
             break;
           case 2: 
-            errorMessage = "SIGNAL LOST: We cannot find you. If you are using a VPN, turn it off. If you are in a gym basement, walk near a window.";
+            errorMessage = "SIGNAL LOST: Turn off VPN or walk near a window.";
             break;
           case 3: 
-            errorMessage = "TIMEOUT: GPS signal is too weak. Connect to the gym Wi-Fi or step outside to catch a satellite signal.";
+            errorMessage = "TIMEOUT: GPS signal too weak. Connect to Wi-Fi.";
             break;
           default:
-            errorMessage = "ORACLE FAILURE: An unknown GPS error occurred.";
+            errorMessage = "ORACLE FAILURE: Unknown GPS error.";
             break;
         }
         
-        alert(errorMessage);
+        toast.error(errorMessage);
       },
       { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
     );
@@ -279,6 +278,32 @@ export default function ForgeDashboard() {
 
   return (
     <>
+    {/* THE ARMOR: Global Toast Container */}
+      <Toaster 
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            borderRadius: '0px',
+            background: '#09090b', // zinc-950
+            color: '#fff',
+            border: '1px solid #27272a', // zinc-800
+            fontFamily: 'monospace',
+            textTransform: 'uppercase',
+            fontWeight: '900',
+            letterSpacing: '0.1em',
+            fontSize: '12px'
+          },
+          success: {
+            iconTheme: { primary: '#16a34a', secondary: '#000' },
+            style: { border: '1px solid #14532d' } // green-900
+          },
+          error: {
+            iconTheme: { primary: '#dc2626', secondary: '#000' },
+            style: { border: '1px solid #7f1d1d' } // red-900
+          },
+        }}
+      />
+      
       {/* THE DECOY SCROLL BUTTON */}
       <button
         onClick={(e) => {
@@ -288,7 +313,6 @@ export default function ForgeDashboard() {
             target.scrollIntoView({ behavior: "smooth", block: "start" });
           }
         }}
-        // The dynamic classes at the end handle the smooth fade-out and disable the button clicks when invisible
         className={`fixed top-6 right-6 z-50 flex items-center justify-center 
                    bg-black/80 backdrop-blur-sm border border-red-800 
                    text-red-500 font-bold tracking-[0.2em] uppercase 
@@ -332,13 +356,21 @@ export default function ForgeDashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 relative z-10">
-                  <div className="border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col items-center">
+                  <div className="border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col items-center justify-center text-center">
                     <span className="text-xs text-zinc-500 uppercase font-bold tracking-widest mb-1">Locked Vault</span>
                     <span className="text-2xl font-black text-red-500 font-mono drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
-                      {(activeStake.stakeAmount.toNumber() / web3.LAMPORTS_PER_SOL).toFixed(2)} SOL
+                      {(
+                        (activeStake.stakeAmount.toNumber() / web3.LAMPORTS_PER_SOL) - 
+                        ((activeStake.stakeAmount.toNumber() / web3.LAMPORTS_PER_SOL) * 0.1 * (activeStake.missedDays || 0))
+                      ).toFixed(2)} SOL
                     </span>
+                    {activeStake.missedDays > 0 && (
+                      <span className="text-[10px] text-red-600 font-black tracking-widest uppercase mt-1 animate-pulse">
+                        Bleeding (-{activeStake.missedDays * 10}%)
+                      </span>
+                    )}
                   </div>
-                  <div className="border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col items-center">
+                  <div className="border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col items-center justify-center">
                     <span className="text-xs text-zinc-500 uppercase font-bold tracking-widest mb-1">Commitment</span>
                     <span className="text-2xl font-black text-white font-mono">
                       {activeStake.daysCommitted} Days
@@ -353,7 +385,12 @@ export default function ForgeDashboard() {
 
                 {/* THE IRON MATRIX (STREAK TRACKER) */}
                 <div className="mt-2 relative z-10">
-                  <IronMatrix daysCommitted={activeStake.daysCommitted} daysCompleted={activeStake.daysCompleted} />
+                  <IronMatrix 
+                    daysCommitted={activeStake.daysCommitted} 
+                    daysCompleted={activeStake.daysCompleted} 
+                    missedDays={activeStake.missedDays || 0} 
+                    userKey={publicKey?.toBase58()}
+                  />
                 </div>
 
                 {/* THE GEOLOCATION ORACLE CONTROLS */}
