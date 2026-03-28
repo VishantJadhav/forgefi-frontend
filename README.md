@@ -1,73 +1,14 @@
-# React + TypeScript + Vite
+# 🩸 ForgeFi: The Dark Fitness Protocol
+**Eternal Hackathon Sprint Submission**
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ForgeFi is a decentralized, high-stakes fitness protocol built on Solana. Users lock their SOL into a PDA vault and commit to a workout split. If they verify their geolocation at the gym every 24 hours, their SOL is safe. If they miss a day, the autonomous Executioner Bot slashes 10% of their stake and bleeds it to the protocol treasury.
 
-Currently, two official plugins are available:
+### 🏗️ Architecture & Codebases
+We utilized a microservice-style Polyrepo architecture to separate our concerns. 
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+* 🖥️ **[Frontend Application (This Repo)](#)**: The React/Web3 interface and Geolocation Oracle.
+* ⚙️ **[Smart Contract (Rust/Anchor)]https://github.com/VishantJadhav/forgefi-backend**: The immutable logic, PDAs, and Vampire Bleed mathematical constraints.
+* 💀 **[The Executioner Bot (Node.js)]https://github.com/VishantJadhav/forgefi-executioner**: The autonomous CRON job that constantly scans the Devnet to execute slashing transactions on late users.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### 🚀 Try It Out
+* **Live Demo:** [Insert Vercel/Netlify Link]
