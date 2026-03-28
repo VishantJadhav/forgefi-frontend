@@ -182,6 +182,9 @@ export default function ForgeDashboard() {
         })
         .rpc();
 
+      // Log TX for debugging to clear TypeScript warning
+      console.log(`Stake successful. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
+
       toast.success("Stake locked in the vault! Protocol Active.");
       await fetchStakeData(); 
 
@@ -201,6 +204,20 @@ export default function ForgeDashboard() {
     if (!gymLocation) {
       toast.error("Please calibrate your gym location first!");
       return;
+    }
+
+    // 🛡️ THE PRE-FLIGHT COOLDOWN CHECK
+    if (activeStake) {
+      const lastCheckIn = activeStake.lastCheckIn.toNumber();
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      const timeSinceLastWorkout = currentTimestamp - lastCheckIn;
+      const SECONDS_IN_A_DAY = 86400; // 24 hours
+
+      if (timeSinceLastWorkout < SECONDS_IN_A_DAY) {
+        const hoursLeft = Math.ceil((SECONDS_IN_A_DAY - timeSinceLastWorkout) / 3600);
+        toast.error(`RECOVERY PERIOD: You already forged today. Iron cools in ${hoursLeft} hours.`);
+        return; 
+      }
     }
 
     setIsVerifying(true);
@@ -240,6 +257,9 @@ export default function ForgeDashboard() {
               userStake: userStakePDA, 
             } as any)
             .rpc();
+
+          // Log TX for debugging to clear TypeScript warning
+          console.log(`Verify successful. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
 
           toast.success("Workout verified on-chain! Streak updated.");
           await fetchStakeData(); 
