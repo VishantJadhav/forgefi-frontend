@@ -389,6 +389,7 @@ export default function ForgeDashboard() {
                     daysCommitted={activeStake.daysCommitted} 
                     daysCompleted={activeStake.daysCompleted} 
                     missedDays={activeStake.missedDays || 0} 
+                    userKey={publicKey?.toBase58()}
                   />
                 </div>
 

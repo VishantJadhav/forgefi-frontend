@@ -1,14 +1,53 @@
+import { useEffect, useState } from 'react';
+
 export default function IronMatrix({ 
   daysCommitted, 
   daysCompleted = 0, 
-  missedDays = 0 
+  missedDays = 0,
+  userKey
 }: { 
   daysCommitted: number; 
   daysCompleted?: number;
   missedDays: number;
+  userKey?: string;
 }) {
-  // Create an array representing the total days
-  const blocks = Array.from({ length: daysCommitted }, (_, i) => i);
+  const [sequence, setSequence] = useState<string[]>([]);
+
+  // THE CHRONOLOGICAL LISTENER
+  useEffect(() => {
+    if (!userKey) return;
+    
+    const storageKey = `forgefi_matrix_seq_${userKey}`;
+    const savedSeq = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    
+    const savedCompleted = savedSeq.filter((s: string) => s === 'completed').length;
+    const savedMissed = savedSeq.filter((s: string) => s === 'missed').length;
+    
+    let newSeq = [...savedSeq];
+    
+    if (daysCompleted > savedCompleted) {
+      const diff = daysCompleted - savedCompleted;
+      for(let i=0; i<diff; i++) newSeq.push('completed');
+    }
+    
+    if (missedDays > savedMissed) {
+      const diff = missedDays - savedMissed;
+      for(let i=0; i<diff; i++) newSeq.push('missed');
+    }
+    
+    if (daysCompleted === 0 && missedDays === 0) {
+      newSeq = [];
+    }
+
+    setSequence(newSeq);
+    localStorage.setItem(storageKey, JSON.stringify(newSeq));
+    
+  }, [daysCompleted, missedDays, userKey]);
+
+  const blocks = Array.from({ length: daysCommitted }, (_, i) => {
+    if (i < sequence.length) return sequence[i];
+    return 'pending';
+  });
 
   return (
     <div className="w-full flex flex-col gap-2 mt-2 relative z-10">
@@ -21,22 +60,23 @@ export default function IronMatrix({
         </span>
       </div>
       
-      <div className="grid grid-cols-6 gap-2">
-        {blocks.map((blockIndex) => {
-          // Determine the status of the current block
-          const isCompleted = blockIndex < daysCompleted;
-          const isMissed = blockIndex >= daysCompleted && blockIndex < daysCompleted + missedDays;
-          const isPending = !isCompleted && !isMissed;
+      {/* FIX 1: Swapped Grid for Flexbox with justify-center */}
+      <div className="flex flex-wrap justify-center gap-3 py-2">
+        {blocks.map((status, blockIndex) => {
+          const isCompleted = status === 'completed';
+          const isMissed = status === 'missed';
           
           return (
             <div 
               key={blockIndex} 
-              className={`h-12 w-full border-2 transition-all duration-500 relative flex items-center justify-center overflow-hidden ${
+              // Added fixed w-12 to keep them perfectly square while centering
+              className={`h-12 w-12 flex-shrink-0 border-2 transition-all duration-500 relative flex items-center justify-center overflow-hidden ${
                 isCompleted 
                   ? 'bg-red-600 border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.4)]' 
                   : isMissed
                   ? 'bg-zinc-900 border-zinc-800'
-                  : 'bg-black border-zinc-800/50 shadow-inner opacity-50'
+                  // FIX 2: Brighter gunmetal border (zinc-600) and full opacity for visibility
+                  : 'bg-black border-zinc-600 shadow-inner'
               }`}
             >
               {/* COMPLETED: The SVG Overlay */}
@@ -46,18 +86,11 @@ export default function IronMatrix({
 
               {/* MISSED: The Dead "X" */}
               {isMissed && (
-                <div className="absolute inset-0 flex items-center justify-center opacity-30">
-                  <div className="w-full h-0.5 bg-red-900 rotate-45 absolute"></div>
-                  <div className="w-full h-0.5 bg-red-900 -rotate-45 absolute"></div>
+                <div className="absolute inset-0 flex items-center justify-center opacity-100">
+                  <div className="w-full h-1 bg-red-600 rotate-45 absolute"></div>
+                  <div className="w-full h-1 bg-red-600 -rotate-45 absolute"></div>
                 </div>
               )}
-
-              {/* Day Number inside the block */}
-              <span className={`text-[10px] font-black font-mono z-10 ${
-                isCompleted ? 'text-white' : isMissed ? 'text-zinc-700' : 'text-zinc-700'
-              }`}>
-                {blockIndex + 1}
-              </span>
             </div>
           );
         })}
