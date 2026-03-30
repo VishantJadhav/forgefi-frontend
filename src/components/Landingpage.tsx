@@ -4,10 +4,21 @@ import Graveyard from './Graveyard';
 
 export default function LandingPage() {
   return (
-    <div className="w-full bg-zinc-950 font-sans selection:bg-red-600 selection:text-white">
+    <div className="w-full bg-zinc-950 font-sans selection:bg-red-600 selection:text-white relative">
       
       {/* ========================================= */}
-      {/* SECTION 1: THE HERO (Video Background) */}
+      {/* THE STICKY LOGO (Fixed Top Left)          */}
+      {/* ========================================= */}
+      <div className="fixed top-6 left-6 z-[100] flex items-center gap-3 pointer-events-auto">
+        <img 
+          src='/F.png'
+          alt="ForgeFi" 
+          className="w-12 h-12 object-contain drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]" 
+        />
+      </div>
+
+      {/* ========================================= */}
+      {/* SECTION 1: THE HERO (Video Background)    */}
       {/* ========================================= */}
       <div className="relative h-screen w-full flex flex-col items-center justify-center overflow-hidden">
         
@@ -41,7 +52,7 @@ export default function LandingPage() {
       </div>
 
       {/* ========================================= */}
-      {/* THE GRAVEYARD (Full-Width Slashing Feed) */}
+      {/* THE GRAVEYARD (Full-Width Slashing Feed)  */}
       {/* ========================================= */}
       <div className="relative z-40 w-full">
         <Graveyard />
