@@ -11,12 +11,10 @@ import IronMatrix from './IronMatrix';
 import idl from '../idl/idl.json';
 
 // ==========================================
-// ENVIRONMENT TOGGLE
+// THE ORACLE RADIUS (PRODUCTION)
 // ==========================================
-// Set to true while testing on Desktop so IP bounces don't block transactions.
-// Set to false for Production (enforces strict 100m gym radius).
-const DEV_MODE_RADIUS = true; 
-const ALLOWED_DISTANCE_METERS = DEV_MODE_RADIUS ? 10000000 : 100;
+// Strict 150-meter radius for real-world gym verification.
+const ALLOWED_DISTANCE_METERS = 150;
 
 // --- THE MATH: Haversine Formula for GPS Distance (in meters) ---
 const getDistanceInMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -182,7 +180,6 @@ export default function ForgeDashboard() {
         })
         .rpc();
 
-      // Log TX for debugging to clear TypeScript warning
       console.log(`Stake successful. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
 
       toast.success("Stake locked in the vault! Protocol Active.");
@@ -258,7 +255,6 @@ export default function ForgeDashboard() {
             } as any)
             .rpc();
 
-          // Log TX for debugging to clear TypeScript warning
           console.log(`Verify successful. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
 
           toast.success("Workout verified on-chain! Streak updated.");
