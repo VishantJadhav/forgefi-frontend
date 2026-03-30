@@ -208,13 +208,14 @@ export default function ForgeDashboard() {
       const lastCheckIn = activeStake.lastCheckIn.toNumber();
       const currentTimestamp = Math.floor(Date.now() / 1000);
       const timeSinceLastWorkout = currentTimestamp - lastCheckIn;
-      const SECONDS_IN_A_DAY = 86400; // 24 hours
+      const COOLDOWN_PERIOD = 57600; // 16 hours (in seconds)
 
-      if (timeSinceLastWorkout < SECONDS_IN_A_DAY) {
-        const hoursLeft = Math.ceil((SECONDS_IN_A_DAY - timeSinceLastWorkout) / 3600);
-        toast.error(`RECOVERY PERIOD: You already forged today. Iron cools in ${hoursLeft} hours.`);
+      if (timeSinceLastWorkout < COOLDOWN_PERIOD) {
+        const hoursLeft = Math.ceil((COOLDOWN_PERIOD - timeSinceLastWorkout) / 3600);
+        toast.error(`RECOVERY PERIOD: Muscles still repairing. Iron cools in ${hoursLeft} hours.`);
         return; 
       }
+
     }
 
     setIsVerifying(true);
