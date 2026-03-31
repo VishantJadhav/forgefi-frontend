@@ -205,17 +205,22 @@ export default function ForgeDashboard() {
 
     // 🛡️ THE PRE-FLIGHT COOLDOWN CHECK
     if (activeStake) {
-      const lastCheckIn = activeStake.lastCheckIn.toNumber();
-      const currentTimestamp = Math.floor(Date.now() / 1000);
-      const timeSinceLastWorkout = currentTimestamp - lastCheckIn;
-      const COOLDOWN_PERIOD = 57600; // 16 hours (in seconds)
+      // FIX: Check if they are at 0 days (Day Zero)
+      const isFirstWorkout = activeStake.daysCompleted === 0;
 
-      if (timeSinceLastWorkout < COOLDOWN_PERIOD) {
-        const hoursLeft = Math.ceil((COOLDOWN_PERIOD - timeSinceLastWorkout) / 3600);
-        toast.error(`RECOVERY PERIOD: Muscles still repairing. Iron cools in ${hoursLeft} hours.`);
-        return; 
+      // Only enforce the 16-hour cooldown if it is NOT their first workout
+      if (!isFirstWorkout) {
+        const lastCheckIn = activeStake.lastCheckIn.toNumber();
+        const currentTimestamp = Math.floor(Date.now() / 1000);
+        const timeSinceLastWorkout = currentTimestamp - lastCheckIn;
+        const COOLDOWN_PERIOD = 57600; // 16 hours (in seconds)
+
+        if (timeSinceLastWorkout < COOLDOWN_PERIOD) {
+          const hoursLeft = Math.ceil((COOLDOWN_PERIOD - timeSinceLastWorkout) / 3600);
+          toast.error(`RECOVERY PERIOD: Muscles still repairing. Iron cools in ${hoursLeft} hours.`);
+          return; 
+        }
       }
-
     }
 
     setIsVerifying(true);
