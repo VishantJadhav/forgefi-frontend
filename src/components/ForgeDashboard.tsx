@@ -205,10 +205,8 @@ export default function ForgeDashboard() {
 
     // 🛡️ THE PRE-FLIGHT COOLDOWN CHECK
     if (activeStake) {
-      // FIX: Check if they are at 0 days (Day Zero)
       const isFirstWorkout = activeStake.daysCompleted === 0;
 
-      // Only enforce the 16-hour cooldown if it is NOT their first workout
       if (!isFirstWorkout) {
         const lastCheckIn = activeStake.lastCheckIn.toNumber();
         const currentTimestamp = Math.floor(Date.now() / 1000);
@@ -345,7 +343,7 @@ export default function ForgeDashboard() {
         Connect Wallet
       </button>
 
-      {/* FULL PAGE WRAPPER FOR BACKGROUND & LOGO */}
+      {/* FULL PAGE WRAPPER FOR BACKGROUND */}
       <div className="relative w-full min-h-screen bg-black overflow-hidden">
         
         {/* THE VIDEO BACKGROUND */}
@@ -359,18 +357,18 @@ export default function ForgeDashboard() {
           <source src="/gym-bg.mp4" type="video/mp4" />
         </video>
 
-        {/* THE LOGO - Mobile: Pinned & Scaled | Desktop: Normal Flow */}
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 md:relative md:top-0 md:left-0 md:translate-x-0 md:flex md:justify-center md:pt-12">
+        {/* THE LOGO - Mobile: Top Left & Scrolls away | Desktop: Centered */}
+        <div className="absolute top-6 left-6 z-50 md:relative md:top-0 md:left-0 md:flex md:justify-center md:pt-12">
           <img 
             src="/logo.png" 
             alt="ForgeFi" 
-            className="w-32 md:w-64 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all"
+            className="w-24 md:w-64 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all"
           />
         </div>
 
         {/* THE MAIN INTERFACE - The Anchor Target */}
-        {/* Notice the pt-32 on mobile to clear the logo, and pt-12 on desktop */}
-        <div id="staking-forge-section" className="w-full flex justify-center relative z-10 pt-32 md:pt-12 pb-24">
+        {/* Added padding top (pt-28) on mobile so the logo doesn't overlap the main form */}
+        <div id="staking-forge-section" className="w-full flex justify-center items-center min-h-screen relative z-10 pt-28 md:pt-12 pb-24">
           {!connected ? (
             <div className="w-full max-w-md animate-fade-in mx-auto flex justify-center">
               <WalletMultiButton className="!bg-red-600 hover:!bg-red-700 transition-colors rounded-none font-black uppercase tracking-widest px-8 py-6 w-full !justify-center items-center text-lg shadow-[0_0_30px_rgba(220,38,38,0.2)]" />
