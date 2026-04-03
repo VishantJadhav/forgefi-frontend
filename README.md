@@ -16,4 +16,4 @@ We utilized a microservice-style Polyrepo architecture to cleanly separate our c
 3. **Bleed:** If the 24-hour timer expires, the Executioner bot automatically triggers the `slash_workout` instruction. The user loses 10%, and the Iron Matrix UI records a permanent dead block on their timeline.
 
 ### 🚀 Try It Out
-* **Live Demo:** [Insert Vercel/Netlify Link Here]
+* **Live Demo:** https://forgefi-p7lk7fqpr-vishantjadhavs-projects.vercel.app/
