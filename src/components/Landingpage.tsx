@@ -88,7 +88,7 @@ export default function LandingPage() {
 
         {/* The Dashboard */}
         <div className="flex flex-col items-center w-full pt-2">
-           <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-2 text-center">
+           <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-12 text-center">
              Ready to Lock In?
            </h2>
           <ForgeDashboard />
