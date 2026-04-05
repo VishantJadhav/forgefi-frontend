@@ -10,7 +10,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="w-full bg-black border-t-2 border-zinc-900 py-16 relative z-10">
+    <footer className="w-full bg-transparent border-t-2 border-zinc-900 py-16 relative z-10">
       <div className="max-w-5xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center md:items-start gap-12">
         
         {/* BRAND & DISCLAIMER */}

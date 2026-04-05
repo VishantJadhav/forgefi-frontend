@@ -4,7 +4,7 @@ import Graveyard from './Graveyard';
 
 export default function LandingPage() {
   return (
-    <div className="w-full bg-zinc-950 font-sans selection:bg-red-600 selection:text-white relative">
+    <div className="w-full bg-black font-sans selection:bg-red-600 selection:text-white relative">
       
       {/* ========================================= */}
       {/* THE STICKY LOGO (Fixed Top Left)          */}
