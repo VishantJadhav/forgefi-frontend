@@ -4,55 +4,35 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
 import { Buffer } from 'buffer';
 import toast, { Toaster } from 'react-hot-toast';
+
+// Components & IDL
 import DeadlineTimer from './DeadlineTimer';
 import IronMatrix from './IronMatrix';
 import Footer from './Footer'; 
-
-// The IDL Blueprint
 import idl from '../idl/idl.json';
 
-// ==========================================
-// THE ORACLE RADIUS (PRODUCTION)
-// ==========================================
-// Strict 150-meter radius for real-world gym verification.
-const ALLOWED_DISTANCE_METERS = 150;
-
-// --- THE MATH: Haversine Formula for GPS Distance (in meters) ---
-const getDistanceInMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const R = 6371e3; // Earth radius in meters
-  const toRadians = (deg: number) => deg * (Math.PI / 180);
-  const dLat = toRadians(lat2 - lat1);
-  const dLon = toRadians(lon2 - lon1);
-  const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+// Custom Hooks
+import { useGeolocation, ALLOWED_DISTANCE_METERS, getDistanceInMeters } from '../hooks/useGeolocation';
+import { useVaultState, PROGRAM_ID } from '../hooks/useVaultState';
 
 export default function ForgeDashboard() {
-  // 1. Solana Wallet & Connection Hooks
+  // 1. Solana Wallet & Connection Hooks (Kept for Write Transactions)
   const { connection } = useConnection();
   const wallet = useWallet();
   const { publicKey, connected, signTransaction } = wallet;
   
-  // 2. Form & UI State
+  // 2. Custom Hooks (The Extracted Logic)
+  const { gymLocation, calibrateGymLocation } = useGeolocation(publicKey?.toBase58());
+  const { activeStake, isChecking, fetchStakeData } = useVaultState();
+
+  // 3. Form & UI State
   const [days, setDays] = useState(6);
   const [stakeAmount, setStakeAmount] = useState(0.5);
   const [isStaking, setIsStaking] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  
-  // 3. Application State (The Scanner & Oracle)
-  const [isChecking, setIsChecking] = useState(false);
-  const [activeStake, setActiveStake] = useState<any>(null);
-  const [gymLocation, setGymLocation] = useState<{lat: number, lng: number} | null>(null);
-
-  // 4. Scroll State (For the vanishing Decoy Button)
   const [showDecoy, setShowDecoy] = useState(true);
 
-  // ==========================================
   // SCROLL LISTENER (The Vanishing Act)
-  // ==========================================
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 150) {
@@ -67,92 +47,6 @@ export default function ForgeDashboard() {
   }, []);
 
   // ==========================================
-  // MULTI-WALLET IDENTITY STORAGE
-  // ==========================================
-  useEffect(() => {
-    if (publicKey) {
-      const storageKey = `forgefi_gym_${publicKey.toBase58()}`;
-      const savedGym = localStorage.getItem(storageKey);
-      
-      if (savedGym) {
-        setGymLocation(JSON.parse(savedGym));
-      } else {
-        setGymLocation(null); 
-      }
-    } else {
-      setGymLocation(null);
-    }
-  }, [publicKey]);
-
-  // ==========================================
-  // THE BLOCKCHAIN SCANNER (READ)
-  // ==========================================
-  const fetchStakeData = async () => {
-    if (!publicKey || !connected) {
-      setActiveStake(null);
-      return;
-    }
-
-    try {
-      setIsChecking(true);
-      const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
-      const PROGRAM_ID = new web3.PublicKey("AyN3aAx2VJTSxJGaR5n9Ayhpa6inCAxaSGupxbGw1Rnz");
-      const program = new Program(idl as any, PROGRAM_ID, provider);
-
-      const [userStakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake"), publicKey.toBuffer()],
-        PROGRAM_ID
-      );
-
-      const accountData = await program.account.userStake.fetchNullable(userStakePDA);
-
-      if (accountData) {
-        setActiveStake(accountData); 
-      } else {
-        setActiveStake(null); 
-      }
-    } catch (error) {
-      console.error("Error scanning for vault:", error);
-      setActiveStake(null);
-    } finally {
-      setIsChecking(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStakeData();
-  }, [publicKey, connection, connected]); 
-
-  // ==========================================
-  // THE ORACLE: GEOLOCATION CALIBRATION
-  // ==========================================
-  const calibrateGymLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser.");
-      return;
-    }
-    
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-        setGymLocation(coords);
-        
-        if (publicKey) {
-          const storageKey = `forgefi_gym_${publicKey.toBase58()}`;
-          localStorage.setItem(storageKey, JSON.stringify(coords));
-        }
-        
-        toast.success(`Gym location locked! Active Radius: ${ALLOWED_DISTANCE_METERS}m.`);
-      },
-      (error) => {
-        console.error(error);
-        toast.error("Failed to get location. Allow permissions in settings.");
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 } 
-    );
-  };
-
-  // ==========================================
   // THE SMART CONTRACT ENGINE (WRITE: STAKE)
   // ==========================================
   const handleStake = async () => {
@@ -161,7 +55,6 @@ export default function ForgeDashboard() {
     try {
       setIsStaking(true);
       const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
-      const PROGRAM_ID = new web3.PublicKey("AyN3aAx2VJTSxJGaR5n9Ayhpa6inCAxaSGupxbGw1Rnz");
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
       const lamports = new BN(Math.floor(stakeAmount * web3.LAMPORTS_PER_SOL));
@@ -204,7 +97,7 @@ export default function ForgeDashboard() {
       return;
     }
 
-    // 🛡️ THE PRE-FLIGHT COOLDOWN CHECK
+    // THE PRE-FLIGHT COOLDOWN CHECK
     if (activeStake) {
       const isFirstWorkout = activeStake.daysCompleted === 0;
 
@@ -224,7 +117,7 @@ export default function ForgeDashboard() {
 
     setIsVerifying(true);
 
-    // 1. THE ORACLE CHECK (Off-Chain Verification)
+    // THE ORACLE CHECK
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const currentLat = position.coords.latitude;
@@ -239,10 +132,9 @@ export default function ForgeDashboard() {
           return;
         }
 
-        // 2. THE BLOCKCHAIN TRANSACTION (On-Chain Execution)
+        // THE BLOCKCHAIN TRANSACTION
         try {
           const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
-          const PROGRAM_ID = new web3.PublicKey("AyN3aAx2VJTSxJGaR5n9Ayhpa6inCAxaSGupxbGw1Rnz");
           const program = new Program(idl as any, PROGRAM_ID, provider);
 
           const [userStakePDA] = web3.PublicKey.findProgramAddressSync(
