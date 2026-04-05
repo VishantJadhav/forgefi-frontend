@@ -424,7 +424,10 @@ export default function ForgeDashboard() {
 
                   {/* THE GUILLOTINE TIMER */}
                   <div className="mt-2 relative z-10">
-                     <DeadlineTimer />
+                     <DeadlineTimer 
+                        lastCheckIn={activeStake.lastCheckIn.toNumber()} 
+                        daysCompleted={activeStake.daysCompleted} 
+                     />
                   </div>
 
                   {/* THE IRON MATRIX (STREAK TRACKER) */}
