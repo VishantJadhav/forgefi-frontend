@@ -1,3 +1,9 @@
+import { useEffect, useState } from "react";
+import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
+import { Program, AnchorProvider } from "@coral-xyz/anchor";
+import { PublicKey } from "@solana/web3.js";
+import idl from "../idl/idl.json"; // 🚨 Ensure this path points to your actual IDL file!
+
 // The ForgeFi Gamified Ranking System
 const FORGE_RANKS = [
   { minDays: 180, title: "TREN FIEND", color: "text-green-500 drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]" },
@@ -12,17 +18,55 @@ const getRank = (days: number) => {
   return FORGE_RANKS.find(rank => days >= rank.minDays) || FORGE_RANKS[5];
 };
 
-// Mock Data (To be replaced with Solana Smart Contract data later)
-const MOCK_LEADERBOARD = [
-  { wallet: "7x9A...3fB2", streak: 214 },
-  { wallet: "2pL4...9mK1", streak: 112 },
-  { wallet: "9qX1...4vC8", streak: 45 },
-  { wallet: "4aB3...1nZ7", streak: 12 },
-  { wallet: "8mM2...6pX9", streak: 4 },
-  { wallet: "1zY9...8wQ4", streak: 0 },
-];
+// 🚨 CRITICAL: Replace with your actual deployed Program ID
+const PROGRAM_ID = new PublicKey("AyN3aAx2VJTSxJGaR5n9Ayhpa6inCAxaSGupxbGw1Rnz"); 
 
 export default function Leaderboard() {
+  const { connection } = useConnection();
+  const wallet = useAnchorWallet();
+  
+  // State to hold the live blockchain data
+  const [leaders, setLeaders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Helper to make Public Keys look clean (e.g., 7x9A...3fB2)
+  const shortenAddress = (address: string) => {
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  };
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      // If no wallet is connected, we can't initialize the Anchor Provider easily in this setup
+      if (!wallet) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const provider = new AnchorProvider(connection, wallet, { preflightCommitment: "confirmed" });
+        const program = new Program(idl as any, PROGRAM_ID, provider);
+
+        // 1. Scan the blockchain for every single ForgeFi Vault
+        const allVaults = await program.account.userStake.all();
+
+        // 2. Sort by the highest streak (daysCompleted)
+        const sortedVaults = allVaults.sort((a: any, b: any) => {
+          return b.account.daysCompleted - a.account.daysCompleted;
+        });
+
+        // 3. Take the Top 10 Alphas
+        setLeaders(sortedVaults.slice(0, 10));
+      } catch (error) {
+        console.error("❌ Failed to load the Iron Matrix:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, [wallet, connection]);
+
   return (
     <div className="w-full mx-auto animate-fade-in relative z-20">
       
@@ -47,13 +91,34 @@ export default function Leaderboard() {
           <div className="col-span-1 text-right">Title</div>
         </div>
 
-        {/* Map through the mock lifters */}
-        {MOCK_LEADERBOARD.map((user, index) => {
-          const rankDetails = getRank(user.streak);
+        {/* Loading / Empty States */}
+        {!wallet && !loading && (
+          <div className="p-8 text-center text-zinc-500 font-bold uppercase tracking-widest">
+            Connect Wallet to Scan the Matrix
+          </div>
+        )}
+
+        {wallet && loading && (
+          <div className="p-8 text-center text-red-500 font-bold uppercase animate-pulse tracking-widest">
+            Scanning Blockchain...
+          </div>
+        )}
+
+        {wallet && !loading && leaders.length === 0 && (
+          <div className="p-8 text-center text-zinc-500 font-bold uppercase tracking-widest">
+            The Hall is Empty. Claim the first stake.
+          </div>
+        )}
+
+        {/* Live Data Mapping */}
+        {wallet && !loading && leaders.map((vault, index) => {
+          const streak = vault.account.daysCompleted;
+          const rankDetails = getRank(streak);
+          const walletPubkey = vault.account.user.toBase58();
           
           return (
             <div 
-              key={index} 
+              key={walletPubkey} 
               className="grid grid-cols-4 gap-4 p-4 border-b border-zinc-800/50 hover:bg-zinc-800/50 transition-colors items-center group"
             >
               {/* Position Number */}
@@ -63,12 +128,12 @@ export default function Leaderboard() {
               
               {/* Wallet Address */}
               <div className="col-span-1 text-left font-mono text-xs sm:text-sm text-zinc-300">
-                {user.wallet}
+                {shortenAddress(walletPubkey)}
               </div>
               
               {/* Streak Count */}
               <div className="col-span-1 text-center font-mono text-lg sm:text-xl font-bold text-white">
-                {user.streak} <span className="text-[10px] sm:text-xs text-zinc-600 font-sans uppercase hidden sm:inline-block ml-1">Days</span>
+                {streak} <span className="text-[10px] sm:text-xs text-zinc-600 font-sans uppercase hidden sm:inline-block ml-1">Days</span>
               </div>
               
               {/* Dynamic Heavy Metal Title */}
