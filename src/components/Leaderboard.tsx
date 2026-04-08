@@ -47,8 +47,10 @@ export default function Leaderboard() {
         const provider = new AnchorProvider(connection, wallet, { preflightCommitment: "confirmed" });
         const program = new Program(idl as any, PROGRAM_ID, provider);
 
-        // 1. Scan the blockchain for every single ForgeFi Vault
-        const allVaults = await program.account.userStake.all();
+        // 1. Put the shield up to ignore 50-byte ghost accounts
+        const allVaults = await program.account.userStake.all([
+          { dataSize: 60 }
+        ]);
 
         // 2. Sort by the highest streak (daysCompleted)
         const sortedVaults = allVaults.sort((a: any, b: any) => {
