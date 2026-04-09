@@ -414,7 +414,7 @@ export default function ForgeDashboard() {
                           onChange={(e) => setDays(Number(e.target.value))} 
                           className="bg-transparent text-center text-white font-black text-2xl w-full h-full pt-5 pb-2 focus:outline-none appearance-none" 
                           min="1" 
-                          max="255" 
+                          max="365" 
                         />
                       </div>
                     </div>
