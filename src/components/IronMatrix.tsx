@@ -76,14 +76,22 @@ export default function IronMatrix({
               <div
                 key={blockIndex}
                 title={`Day ${blockIndex + 1}: ${status.toUpperCase()}`}
-                className={`h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 transition-all duration-300 rounded-[1px] ${
+                className={`h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 transition-all duration-300 rounded-[1px] relative overflow-hidden flex items-center justify-center ${
                   isCompleted
                     ? 'bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.5)]'
                     : isMissed
-                    ? 'bg-zinc-900 border border-red-900/30'
+                    ? 'bg-zinc-900 border border-zinc-800' // MATCHES LARGE BLOCKS
                     : 'bg-black border border-zinc-800'
                 }`}
-              />
+              >
+                {/* 1:1 MINI REPLICA CROSS */}
+                {isMissed && (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-100">
+                    <div className="w-[140%] h-[1.5px] bg-red-600 rotate-45 absolute"></div>
+                    <div className="w-[140%] h-[1.5px] bg-red-600 -rotate-45 absolute"></div>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -103,7 +111,7 @@ export default function IronMatrix({
                   isCompleted 
                     ? 'bg-red-600 border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.4)]' 
                     : isMissed
-                    ? 'bg-zinc-900 border-zinc-800'
+                    ? 'bg-zinc-900 border-zinc-800' // EXACT MATCH
                     : 'bg-black border-zinc-600 shadow-inner'
                 }`}
               >
@@ -115,8 +123,8 @@ export default function IronMatrix({
                 {/* MISSED: The Dead "X" */}
                 {isMissed && (
                   <div className="absolute inset-0 flex items-center justify-center opacity-100">
-                    <div className="w-full h-1 bg-red-600 rotate-45 absolute"></div>
-                    <div className="w-full h-1 bg-red-600 -rotate-45 absolute"></div>
+                    <div className="w-[140%] h-1 bg-red-600 rotate-45 absolute"></div>
+                    <div className="w-[140%] h-1 bg-red-600 -rotate-45 absolute"></div>
                   </div>
                 )}
               </div>
