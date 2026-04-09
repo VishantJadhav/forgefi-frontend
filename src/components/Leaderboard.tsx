@@ -49,7 +49,7 @@ export default function Leaderboard() {
 
         // 1. Put the shield up to ignore 50-byte ghost accounts
         const allVaults = await program.account.userStake.all([
-          { dataSize: 60 }
+          { dataSize: 63 }
         ]);
 
         // 2. Sort by the highest streak (daysCompleted)
