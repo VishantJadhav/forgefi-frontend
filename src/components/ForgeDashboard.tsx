@@ -105,7 +105,7 @@ export default function ForgeDashboard() {
         const lastCheckIn = activeStake.lastCheckIn.toNumber();
         const currentTimestamp = Math.floor(Date.now() / 1000);
         const timeSinceLastWorkout = currentTimestamp - lastCheckIn;
-        const COOLDOWN_PERIOD = 57600; // 16 hours (in seconds)
+        const COOLDOWN_PERIOD = 10; // 10 seconds (changed it for development)
 
         if (timeSinceLastWorkout < COOLDOWN_PERIOD) {
           const hoursLeft = Math.ceil((COOLDOWN_PERIOD - timeSinceLastWorkout) / 3600);
@@ -379,29 +379,45 @@ export default function ForgeDashboard() {
                     Lock Your Stake
                   </h2>
                   
-                  <div className="flex flex-col gap-3 relative z-10 mb-2">
+                  {/* THE NEW 2x2 COMMITMENT GRID */}
+                  <div className="flex flex-col gap-3 relative z-10 mb-4">
                     <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
-                      Select Protocol
+                      Select Commitment
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Box 1: PPL */}
                       <button onClick={() => setDays(6)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 6 ? 'border-red-600 bg-red-900/20 text-red-500' : 'border-zinc-800 bg-transparent text-zinc-500 hover:border-zinc-600'}`}>
                         <span className="font-black text-lg">PPL</span>
                         <span className="text-[10px] uppercase font-bold tracking-widest mt-1">6 Days</span>
                       </button>
+                      
+                      {/* Box 2: Upper/Lower */}
                       <button onClick={() => setDays(4)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 4 ? 'border-red-600 bg-red-900/20 text-red-500' : 'border-zinc-800 bg-transparent text-zinc-500 hover:border-zinc-600'}`}>
-                        <span className="font-black text-lg">U/L</span>
+                        <span className="font-black text-lg">UPPER/LOWER</span>
                         <span className="text-[10px] uppercase font-bold tracking-widest mt-1">4 Days</span>
                       </button>
+                      
+                      {/* Box 3: Full Body */}
                       <button onClick={() => setDays(3)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 3 ? 'border-red-600 bg-red-900/20 text-red-500' : 'border-zinc-800 bg-transparent text-zinc-500 hover:border-zinc-600'}`}>
-                        <span className="font-black text-lg">FB</span>
+                        <span className="font-black text-lg">FULL BODY</span>
                         <span className="text-[10px] uppercase font-bold tracking-widest mt-1">3 Days</span>
                       </button>
+                      
+                      {/* Box 4: Custom Input */}
+                      <div className={`border-2 flex flex-col items-center justify-center transition-all relative overflow-hidden ${![3, 4, 6].includes(days) ? 'border-red-600 bg-red-900/20' : 'border-zinc-800 bg-transparent hover:border-zinc-600'}`}>
+                        <span className={`absolute top-2 text-[10px] uppercase font-bold tracking-widest ${![3, 4, 6].includes(days) ? 'text-red-500' : 'text-zinc-500'}`}>
+                          CUSTOM DAYS
+                        </span>
+                        <input 
+                          type="number" 
+                          value={days} 
+                          onChange={(e) => setDays(Number(e.target.value))} 
+                          className="bg-transparent text-center text-white font-black text-2xl w-full h-full pt-5 pb-2 focus:outline-none appearance-none" 
+                          min="1" 
+                          max="255" 
+                        />
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 relative z-10">
-                    <label className="text-xs font-black text-red-600 uppercase tracking-widest">Custom Commitment (Days)</label>
-                    <input type="number" value={days} onChange={(e) => setDays(Number(e.target.value))} className="bg-transparent border-2 border-zinc-800 text-white p-4 font-mono text-xl focus:outline-none focus:border-red-600 transition-colors w-full" min="1" max="30" />
                   </div>
 
                   <div className="flex flex-col gap-2 relative z-10">
