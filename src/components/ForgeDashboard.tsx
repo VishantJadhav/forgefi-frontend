@@ -218,37 +218,38 @@ export default function ForgeDashboard() {
         }}
       />
 
-      {/* THE INDESTRUCTIBLE FIXED HUD (Logo + Decoy Button) */}
-      <div className="fixed top-0 left-0 w-full p-4 sm:p-6 flex justify-between items-start z-[9999] pointer-events-none">
-        
-        {/* MOBILE LOGO */}
-        <div className="pointer-events-auto md:hidden flex items-center justify-center">
-          <img 
-            src="/F.png" 
-            alt="" 
-            className="w-16 sm:w-20 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all"
-          />
-        </div>
+      {/* THE PURE CSS MOBILE LOGO (Unbreakable, NO WRAPPERS) */}
+      <img 
+        src="/F.png" 
+        alt=""
+        style={{
+          position: 'fixed',
+          top: '24px',
+          left: '24px',
+          width: '80px',
+          zIndex: 99999,
+        }}
+        className="md:hidden drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]"
+      />
 
-        {/* DECOY BUTTON */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            const target = document.getElementById("staking-forge-section");
-            if (target) {
-              target.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
-          }}
-          className={`pointer-events-auto ml-auto flex items-center justify-center 
-                     bg-transparent backdrop-blur-sm border border-red-800 
-                     text-red-500 font-bold tracking-[0.2em] uppercase text-[10px] sm:text-xs
-                     px-4 py-3 sm:px-6 transition-all duration-500 ease-in-out cursor-pointer
-                     hover:bg-red-900 hover:text-white hover:border-red-500 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)]
-                     ${showDecoy ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
-        >
-          Connect Wallet
-        </button>
-      </div>
+      {/* DECOY BUTTON (Unbreakable, NO WRAPPERS) */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          const target = document.getElementById("staking-forge-section");
+          if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }}
+        className={`fixed top-6 right-6 z-[99999] flex items-center justify-center 
+                   bg-transparent backdrop-blur-sm border border-red-800 
+                   text-red-500 font-bold tracking-[0.2em] uppercase text-[10px] sm:text-xs
+                   px-4 py-3 sm:px-6 transition-all duration-500 ease-in-out cursor-pointer
+                   hover:bg-red-900 hover:text-white hover:border-red-500 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)]
+                   ${showDecoy ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
+      >
+        Connect Wallet
+      </button>
 
       {/* FULL PAGE WRAPPER FOR BACKGROUND */}
       <div className="relative w-full min-h-screen bg-black overflow-hidden flex flex-col">
