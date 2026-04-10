@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
@@ -218,36 +217,38 @@ export default function ForgeDashboard() {
           },
         }}
       />
-      
-      {/* THE DECOY SCROLL BUTTON */}
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          const target = document.getElementById("staking-forge-section");
-          if (target) {
-            target.scrollIntoView({ behavior: "smooth", block: "start" });
-          }
-        }}
-        className={`fixed top-6 right-6 z-50 flex items-center justify-center 
-                   bg-transparent backdrop-blur-sm border border-red-800 
-                   text-red-500 font-bold tracking-[0.2em] uppercase 
-                   px-6 py-3 transition-all duration-500 ease-in-out cursor-pointer
-                   hover:bg-red-900 hover:text-white hover:border-red-500 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)]
-                   ${showDecoy ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
-      >
-        Connect Wallet
-      </button>
 
-      {/* THE MOBILE LOGO (Rendered via Portal) */}
-      {typeof document !== 'undefined' && createPortal(
-        <div className="fixed top-6 left-6 z-[9999] md:hidden pointer-events-none">
+      {/* THE INDESTRUCTIBLE FIXED HUD (Logo + Decoy Button) */}
+      <div className="fixed top-0 left-0 w-full p-4 sm:p-6 flex justify-between items-start z-[9999] pointer-events-none">
+        
+        {/* MOBILE LOGO */}
+        <div className="pointer-events-auto md:hidden flex items-center justify-center">
           <img 
-            src="/logo.png" 
-            className="w-24 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all"
+            src="/F.png" 
+            alt="" 
+            className="w-16 sm:w-20 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all"
           />
-        </div>,
-        document.body
-      )}
+        </div>
+
+        {/* DECOY BUTTON */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            const target = document.getElementById("staking-forge-section");
+            if (target) {
+              target.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }}
+          className={`pointer-events-auto ml-auto flex items-center justify-center 
+                     bg-transparent backdrop-blur-sm border border-red-800 
+                     text-red-500 font-bold tracking-[0.2em] uppercase text-[10px] sm:text-xs
+                     px-4 py-3 sm:px-6 transition-all duration-500 ease-in-out cursor-pointer
+                     hover:bg-red-900 hover:text-white hover:border-red-500 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)]
+                     ${showDecoy ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
+        >
+          Connect Wallet
+        </button>
+      </div>
 
       {/* FULL PAGE WRAPPER FOR BACKGROUND */}
       <div className="relative w-full min-h-screen bg-black overflow-hidden flex flex-col">
@@ -266,11 +267,11 @@ export default function ForgeDashboard() {
         {/* THE MAIN INTERFACE */}
         <div id="staking-forge-section" className="w-full flex-grow flex justify-center items-center relative z-10 pt-28 md:pt-12 pb-24">
           {!connected ? (
-            <div className="w-full max-w-md animate-fade-in mx-auto flex justify-center">
+            <div className="w-full max-w-md animate-fade-in mx-auto flex justify-center mt-10">
               <WalletMultiButton className="!bg-red-600 hover:!bg-red-700 transition-colors rounded-none font-black uppercase tracking-widest px-8 py-6 w-full !justify-center items-center text-lg shadow-[0_0_30px_rgba(220,38,38,0.2)]" />
             </div>
           ) : (
-            <div className="w-full max-w-md flex flex-col gap-6 animate-fade-in">
+            <div className="w-full max-w-md flex flex-col gap-6 animate-fade-in mt-10">
               
               {/* Wallet Info Card - CHANGED TO bg-transparent */}
               <div className="flex flex-col items-center border-2 border-zinc-900 bg-transparent p-6 shadow-xl relative z-50">
