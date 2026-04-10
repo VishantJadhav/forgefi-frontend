@@ -255,7 +255,6 @@ export default function ForgeDashboard() {
         <div className="fixed top-6 left-6 z-50 md:hidden">
           <img 
             src="/logo.png" 
-            alt="ForgeFi" 
             className="w-24 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all"
           />
         </div>
