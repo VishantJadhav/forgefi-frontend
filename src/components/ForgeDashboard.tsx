@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
@@ -192,7 +193,7 @@ export default function ForgeDashboard() {
 
   return (
     <>
-    {/* THE ARMOR: Global Toast Container */}
+      {/* THE ARMOR: Global Toast Container */}
       <Toaster 
         position="bottom-right"
         toastOptions={{
@@ -237,6 +238,17 @@ export default function ForgeDashboard() {
         Connect Wallet
       </button>
 
+      {/* THE MOBILE LOGO (Rendered via Portal) */}
+      {typeof document !== 'undefined' && createPortal(
+        <div className="fixed top-6 left-6 z-[9999] md:hidden pointer-events-none">
+          <img 
+            src="/logo.png" 
+            className="w-24 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all"
+          />
+        </div>,
+        document.body
+      )}
+
       {/* FULL PAGE WRAPPER FOR BACKGROUND */}
       <div className="relative w-full min-h-screen bg-black overflow-hidden flex flex-col">
         
@@ -250,14 +262,6 @@ export default function ForgeDashboard() {
         >
           <source src="/gym-bg.mp4" type="video/mp4" />
         </video>
-
-        {/* THE LOGO - Mobile Only */}
-        <div className="fixed top-6 left-6 z-50 md:hidden">
-          <img 
-            src="/logo.png" 
-            className="w-24 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all"
-          />
-        </div>
 
         {/* THE MAIN INTERFACE */}
         <div id="staking-forge-section" className="w-full flex-grow flex justify-center items-center relative z-10 pt-28 md:pt-12 pb-24">
