@@ -218,20 +218,6 @@ export default function ForgeDashboard() {
         }}
       />
 
-      {/* THE PURE CSS MOBILE LOGO (Unbreakable, NO WRAPPERS) */}
-      <img 
-        src="/F.png" 
-        alt=""
-        style={{
-          position: 'fixed',
-          top: '24px',
-          left: '24px',
-          width: '80px',
-          zIndex: 99999,
-        }}
-        className="md:hidden drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]"
-      />
-
       {/* DECOY BUTTON (Unbreakable, NO WRAPPERS) */}
       <button
         onClick={(e) => {
@@ -274,7 +260,7 @@ export default function ForgeDashboard() {
           ) : (
             <div className="w-full max-w-md flex flex-col gap-6 animate-fade-in mt-10">
               
-              {/* Wallet Info Card - CHANGED TO bg-transparent */}
+              {/* Wallet Info Card */}
               <div className="flex flex-col items-center border-2 border-zinc-900 bg-transparent p-6 shadow-xl relative z-50">
                 <h2 className="text-sm font-black mb-3 uppercase text-zinc-400 tracking-widest">Active Lifter</h2>
                 <p className="text-green-500 mb-6 font-mono bg-transparent px-4 py-2 text-sm border border-green-900/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]">
@@ -289,7 +275,7 @@ export default function ForgeDashboard() {
                   Scanning Blockchain...
                 </div>
               ) : activeStake ? (
-                /* Active Stake Container - CHANGED TO bg-transparent */
+                /* Active Stake Container */
                 <div className="border-2 border-red-900 bg-transparent p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
                   
@@ -302,7 +288,6 @@ export default function ForgeDashboard() {
                     <div className="border border-zinc-900 bg-transparent p-4 flex flex-col items-center justify-center text-center">
                       <span className="text-xs text-zinc-500 uppercase font-bold tracking-widest mb-1">Locked Vault</span>
                       <span className="text-2xl font-black text-red-500 font-mono drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
-                        {/* BYPASS: Converted BN to String, then to Number */}
                         {(
                           (Number(activeStake.stakeAmount.toString()) / web3.LAMPORTS_PER_SOL) - 
                           ((Number(activeStake.stakeAmount.toString()) / web3.LAMPORTS_PER_SOL) * 0.1 * (activeStake.missedDays || 0))
@@ -324,7 +309,6 @@ export default function ForgeDashboard() {
 
                   {/* THE GUILLOTINE TIMER */}
                   <div className="mt-2 relative z-10">
-                     {/* BYPASS: Converted BN to String, then to Number */}
                      <DeadlineTimer 
                         lastCheckIn={Number(activeStake.lastCheckIn.toString())} 
                         daysCompleted={activeStake.daysCompleted} 
@@ -379,7 +363,7 @@ export default function ForgeDashboard() {
                   </div>
                 </div>
               ) : (
-                /* Lock Stake Container - CHANGED TO bg-transparent */
+                /* Lock Stake Container */
                 <div className="border-2 border-zinc-900 bg-transparent p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/5 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
                   
@@ -393,25 +377,21 @@ export default function ForgeDashboard() {
                       Select Commitment
                     </label>
                     <div className="grid grid-cols-2 gap-2">
-                      {/* Box 1: PPL */}
                       <button onClick={() => setDays(6)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 6 ? 'border-red-600 bg-red-900/20 text-red-500' : 'border-zinc-800 bg-transparent text-zinc-500 hover:border-zinc-600'}`}>
                         <span className="font-black text-lg">PPL</span>
                         <span className="text-[10px] uppercase font-bold tracking-widest mt-1">6 Days</span>
                       </button>
                       
-                      {/* Box 2: Upper/Lower */}
                       <button onClick={() => setDays(4)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 4 ? 'border-red-600 bg-red-900/20 text-red-500' : 'border-zinc-800 bg-transparent text-zinc-500 hover:border-zinc-600'}`}>
                         <span className="font-black text-lg">UPPER/LOWER</span>
                         <span className="text-[10px] uppercase font-bold tracking-widest mt-1">4 Days</span>
                       </button>
                       
-                      {/* Box 3: Full Body */}
                       <button onClick={() => setDays(3)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 3 ? 'border-red-600 bg-red-900/20 text-red-500' : 'border-zinc-800 bg-transparent text-zinc-500 hover:border-zinc-600'}`}>
                         <span className="font-black text-lg">FULL BODY</span>
                         <span className="text-[10px] uppercase font-bold tracking-widest mt-1">3 Days</span>
                       </button>
                       
-                      {/* Box 4: Custom Input */}
                       <div className={`border-2 flex flex-col items-center justify-center transition-all relative overflow-hidden ${![3, 4, 6].includes(days) ? 'border-red-600 bg-red-900/20' : 'border-zinc-800 bg-transparent hover:border-zinc-600'}`}>
                         <span className={`absolute top-2 text-[10px] uppercase font-bold tracking-widest ${![3, 4, 6].includes(days) ? 'text-red-500' : 'text-zinc-500'}`}>
                           CUSTOM DAYS

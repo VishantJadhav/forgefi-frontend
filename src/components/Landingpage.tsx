@@ -7,13 +7,14 @@ export default function LandingPage() {
     <div className="w-full bg-black font-sans selection:bg-red-600 selection:text-white relative">
       
       {/* ========================================= */}
-      {/* THE STICKY LOGO (Fixed Top Left)          */}
+      {/* 1. DESKTOP LOGO (Sticky/Follows You)      */}
+      {/* Uses 'fixed' so it stays on screen.       */}
       {/* ========================================= */}
-      <div className="fixed top-6 left-6 z-[100] flex items-center gap-3 pointer-events-auto">
+      <div className="hidden md:block fixed top-6 left-6 z-[99999] pointer-events-none">
         <img 
-          src='/F.png'
-          alt="ForgeFi" 
-          className="w-12 h-12 object-contain drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]" 
+          src="/F.png" 
+          alt=""
+          className="w-16 object-contain drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]"
         />
       </div>
 
@@ -22,6 +23,18 @@ export default function LandingPage() {
       {/* ========================================= */}
       <div className="relative h-screen w-full flex flex-col items-center justify-center overflow-hidden">
         
+        {/* ========================================= */}
+        {/* 2. MOBILE LOGO (Fixed to Background)      */}
+        {/* Uses 'absolute' so it scrolls away.       */}
+        {/* ========================================= */}
+        <div className="block md:hidden absolute top-6 left-6 z-[99999] pointer-events-none">
+          <img 
+            src="/F.png" 
+            alt=""
+            className="w-12 object-contain drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]"
+          />
+        </div>
+
         <video 
           autoPlay 
           loop 
@@ -80,9 +93,7 @@ export default function LandingPage() {
 
         {/* GLOWING RED SEPARATOR */}
         <div className="relative w-full h-8 my-8 flex items-center justify-center">
-          {/* The deep red glow (shadow) */}
           <div className="absolute w-full h-[2px] bg-red-600 shadow-[0_0_20px_5px_rgba(220,38,38,0.7)]"></div>
-          {/* The white-hot laser core */}
           <div className="absolute w-full h-[1px] bg-red-300"></div>
         </div>
 
