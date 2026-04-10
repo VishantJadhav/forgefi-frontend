@@ -102,7 +102,8 @@ export default function ForgeDashboard() {
       const isFirstWorkout = activeStake.daysCompleted === 0;
 
       if (!isFirstWorkout) {
-        const lastCheckIn = activeStake.lastCheckIn.toNumber();
+        // BYPASS: Converted BN to String, then to Number
+        const lastCheckIn = Number(activeStake.lastCheckIn.toString());
         const currentTimestamp = Math.floor(Date.now() / 1000);
         const timeSinceLastWorkout = currentTimestamp - lastCheckIn;
         const COOLDOWN_PERIOD = 10; // 10 seconds (changed it for development)
@@ -296,9 +297,10 @@ export default function ForgeDashboard() {
                     <div className="border border-zinc-900 bg-transparent p-4 flex flex-col items-center justify-center text-center">
                       <span className="text-xs text-zinc-500 uppercase font-bold tracking-widest mb-1">Locked Vault</span>
                       <span className="text-2xl font-black text-red-500 font-mono drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                        {/* BYPASS: Converted BN to String, then to Number */}
                         {(
-                          (activeStake.stakeAmount.toNumber() / web3.LAMPORTS_PER_SOL) - 
-                          ((activeStake.stakeAmount.toNumber() / web3.LAMPORTS_PER_SOL) * 0.1 * (activeStake.missedDays || 0))
+                          (Number(activeStake.stakeAmount.toString()) / web3.LAMPORTS_PER_SOL) - 
+                          ((Number(activeStake.stakeAmount.toString()) / web3.LAMPORTS_PER_SOL) * 0.1 * (activeStake.missedDays || 0))
                         ).toFixed(2)} SOL
                       </span>
                       {activeStake.missedDays > 0 && (
@@ -317,8 +319,9 @@ export default function ForgeDashboard() {
 
                   {/* THE GUILLOTINE TIMER */}
                   <div className="mt-2 relative z-10">
+                     {/* BYPASS: Converted BN to String, then to Number */}
                      <DeadlineTimer 
-                        lastCheckIn={activeStake.lastCheckIn.toNumber()} 
+                        lastCheckIn={Number(activeStake.lastCheckIn.toString())} 
                         daysCompleted={activeStake.daysCompleted} 
                      />
                   </div>
