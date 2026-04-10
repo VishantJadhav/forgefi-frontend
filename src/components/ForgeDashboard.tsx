@@ -252,7 +252,7 @@ export default function ForgeDashboard() {
         </video>
 
         {/* THE LOGO - Mobile Only */}
-        <div className="absolute top-6 left-6 z-50 md:hidden">
+        <div className="fixed top-6 left-6 z-50 md:hidden">
           <img 
             src="/logo.png" 
             alt="ForgeFi" 
