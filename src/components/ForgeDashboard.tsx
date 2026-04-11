@@ -30,6 +30,7 @@ export default function ForgeDashboard() {
   const [stakeAmount, setStakeAmount] = useState(0.5);
   const [isStaking, setIsStaking] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isBurning, setIsBurning] = useState(false); // NEW: State for burning the zombie vault
   const [showDecoy, setShowDecoy] = useState(true);
 
   // SCROLL LISTENER (The Vanishing Act)
@@ -190,6 +191,44 @@ export default function ForgeDashboard() {
     );
   };
 
+  // ==========================================
+  // THE SMART CONTRACT ENGINE (WRITE: BURN ZOMBIE)
+  // ==========================================
+  const handleBurnZombie = async () => {
+    if (!publicKey || !signTransaction) return;
+
+    try {
+      setIsBurning(true);
+      const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
+      const program = new Program(idl as any, PROGRAM_ID, provider);
+
+      const [userStakePDA] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("stake"), publicKey.toBuffer()],
+        PROGRAM_ID
+      );
+
+      const tx = await program.methods
+        .acknowledgeFailure()
+        .accounts({
+          user: publicKey,
+          userStake: userStakePDA,
+        } as any)
+        .rpc();
+
+      console.log(`Zombie Vault Burned. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
+      toast.success("Zombie vault burned. The slate is wiped clean.");
+      
+      // Re-fetch the vault data (it should now be null, dropping them back to the staking form)
+      await fetchStakeData(); 
+
+    } catch (error) {
+      console.error("Failed to burn zombie vault:", error);
+      toast.error("Failed to acknowledge failure. Sign the transaction to proceed.");
+    } finally {
+      setIsBurning(false);
+    }
+  };
+
   return (
     <>
       {/* THE ARMOR: Global Toast Container */}
@@ -269,13 +308,46 @@ export default function ForgeDashboard() {
                 <WalletMultiButton className="!bg-zinc-900/50 hover:!bg-zinc-800 transition-colors rounded-none font-bold uppercase text-xs w-full !justify-center items-center border border-zinc-800" />
               </div>
 
-              {/* DYNAMIC UI RENDERING */}
+              {/* DYNAMIC UI RENDERING (THE BOUNCER LOGIC) */}
               {isChecking ? (
+                // 1. LOADING STATE
                 <div className="border-2 border-zinc-900 bg-transparent p-12 text-center text-zinc-500 font-mono uppercase tracking-widest animate-pulse shadow-2xl">
                   Scanning Blockchain...
                 </div>
+              ) : activeStake?.missedDays === 999 ? (
+                // 2. THE WALK OF SHAME (ZOMBIE VAULT)
+                <div className="border-2 border-red-900 bg-red-950/20 backdrop-blur-sm p-8 shadow-[0_0_40px_rgba(220,38,38,0.3)] flex flex-col items-center text-center relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/20 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
+                  
+                  {/* The Skull / Warning Icon */}
+                  <div className="w-16 h-16 bg-red-900/40 rounded-full flex items-center justify-center mb-6 border border-red-600 relative z-10 animate-pulse">
+                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+
+                  <h2 className="text-3xl font-black text-red-500 uppercase tracking-widest mb-4 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)] relative z-10">
+                    You Abandoned <br/> The Iron
+                  </h2>
+                  
+                  <p className="text-red-200/70 mb-8 leading-relaxed font-mono text-xs uppercase tracking-wider relative z-10">
+                    Your vault was totally liquidated by the protocol. The iron does not forgive weakness. You must burn this dead vault and acknowledge your failure before forging a new pact.
+                  </p>
+
+                  <button 
+                    onClick={handleBurnZombie}
+                    disabled={isBurning}
+                    className={`w-full font-black uppercase tracking-widest py-5 transition-all relative z-10 ${
+                      isBurning 
+                        ? 'bg-red-900/50 text-red-500 border border-red-800 cursor-not-allowed' 
+                        : 'bg-red-600 hover:bg-red-700 text-black shadow-[0_0_20px_rgba(220,38,38,0.4)] hover:shadow-[0_0_30px_rgba(220,38,38,0.6)] active:scale-[0.98]'
+                    }`}
+                  >
+                    {isBurning ? 'Burning Vault...' : 'Acknowledge Failure'}
+                  </button>
+                </div>
               ) : activeStake ? (
-                /* Active Stake Container */
+                // 3. NORMAL ACTIVE STAKE CONTAINER
                 <div className="border-2 border-red-900 bg-transparent p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
                   
@@ -363,7 +435,7 @@ export default function ForgeDashboard() {
                   </div>
                 </div>
               ) : (
-                /* Lock Stake Container */
+                // 4. NORMAL LOCK STAKE FORM (NO ACTIVE STAKE)
                 <div className="border-2 border-zinc-900 bg-transparent p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/5 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
                   
