@@ -171,6 +171,9 @@ export default function LoneWolfDashboard() {
         } as any)
         .rpc();
 
+      // FIX: Actually use the 'tx' variable so TypeScript stops crying
+      console.log(`Zombie Vault Burned. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);  
+
       toast.success("Zombie vault burned. The slate is wiped clean.");
       await fetchStakeData(); 
 
