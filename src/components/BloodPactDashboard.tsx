@@ -1,9 +1,17 @@
 import { useState } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
+import { Buffer } from 'buffer';
 import toast from 'react-hot-toast';
 
+// IDL & Constants
+import idl from '../idl/idl.json';
+import { PROGRAM_ID } from '../hooks/useVaultState'; // Reusing your program ID constant
+
 export default function BloodPactDashboard() {
-  const { publicKey } = useWallet();
+  const { connection } = useConnection();
+  const wallet = useWallet();
+  const { publicKey, signTransaction } = wallet;
 
   // View State: 'MENU' | 'CREATE' | 'JOIN'
   const [view, setView] = useState<'MENU' | 'CREATE' | 'JOIN'>('MENU');
@@ -20,25 +28,124 @@ export default function BloodPactDashboard() {
   const [isJoining, setIsJoining] = useState(false);
 
   // ==========================================
-  // STUB: CREATE SQUAD LOGIC (To be wired next)
+  // 1. FORGE THE PACT (CREATE SQUAD)
   // ==========================================
   const handleCreateSquad = async () => {
+    if (!publicKey || !signTransaction) return;
     if (!playerTwo) {
       toast.error("You must invite at least Player 2 to forge a pact.");
       return;
     }
-    toast("Anchor RPC logic pending...", { icon: '🛠️' });
+
+    try {
+      setIsCreating(true);
+      const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
+      const program = new Program(idl as any, PROGRAM_ID, provider);
+
+      // Validate and parse the friend's addresses
+      let p2Key: web3.PublicKey;
+      let p3Key: web3.PublicKey;
+
+      try {
+        p2Key = new web3.PublicKey(playerTwo);
+        // If Player 3 is empty, pass the SystemProgram ID to tell Rust this is a Duo
+        p3Key = playerThree ? new web3.PublicKey(playerThree) : web3.SystemProgram.programId;
+      } catch (err) {
+        toast.error("Invalid Solana address format for Player 2 or 3.");
+        setIsCreating(false);
+        return;
+      }
+
+      const lamports = new BN(Math.floor(stakeAmount * web3.LAMPORTS_PER_SOL));
+      const daysU8 = days;
+
+      // PDA is derived using PLAYER 1's key (The Creator)
+      const [squadVaultPDA] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("squad"), publicKey.toBuffer()],
+        PROGRAM_ID
+      );
+
+      const tx = await program.methods
+        .initializeSquad(lamports, daysU8, p2Key, p3Key)
+        .accounts({
+          playerOne: publicKey,
+          squadVault: squadVaultPDA,
+          systemProgram: web3.SystemProgram.programId,
+        } as any)
+        .rpc();
+
+      console.log(`Blood Pact Forged. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
+      toast.success("Pact forged! Send your wallet address to your squad to invite them.");
+      
+      // Return to menu (We will build the Lobby View next)
+      setView('MENU');
+
+    } catch (error) {
+      console.error("Failed to create squad:", error);
+      toast.error("Transaction failed or rejected by lifter.");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   // ==========================================
-  // STUB: JOIN SQUAD LOGIC (To be wired next)
+  // 2. HONOR THE INVITE (JOIN SQUAD)
   // ==========================================
   const handleJoinSquad = async () => {
+    if (!publicKey || !signTransaction) return;
     if (!leaderAddress) {
       toast.error("You need the Squad Leader's address to find the vault.");
       return;
     }
-    toast("Anchor RPC logic pending...", { icon: '🛠️' });
+
+    try {
+      setIsJoining(true);
+      const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
+      const program = new Program(idl as any, PROGRAM_ID, provider);
+
+      // Parse the Leader's address that the user pasted in
+      let leaderKey: web3.PublicKey;
+      try {
+        leaderKey = new web3.PublicKey(leaderAddress);
+      } catch (err) {
+        toast.error("Invalid Squad Leader address format.");
+        setIsJoining(false);
+        return;
+      }
+
+      // PDA is derived using the LEADER'S key, so we can find their specific vault
+      const [squadVaultPDA] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("squad"), leaderKey.toBuffer()],
+        PROGRAM_ID
+      );
+
+      const tx = await program.methods
+        .joinSquad()
+        .accounts({
+          player: publicKey,
+          squadVault: squadVaultPDA,
+          systemProgram: web3.SystemProgram.programId,
+        } as any)
+        .rpc();
+
+      console.log(`Joined Squad. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
+      toast.success("You have honored the invite. SOL locked.");
+      
+      // Return to menu (We will build the Lobby View next)
+      setView('MENU');
+
+    } catch (error: any) {
+      console.error("Failed to join squad:", error);
+      
+      // Custom Error Handling: Did the Bouncer reject them?
+      if (error.toString().includes("NotInvited") || error.toString().includes("6005")) {
+        toast.error("The Bouncer rejected you. You are not on the guest list.");
+      } else {
+        toast.error("Transaction failed. Make sure the vault exists.");
+      }
+    } finally {
+      setIsJoining(false);
+    }
   };
 
   // --- RENDER 1: THE CROSSROADS MENU ---
@@ -46,26 +153,17 @@ export default function BloodPactDashboard() {
     return (
       <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-50 text-center">
         <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
-        
         <h2 className="text-3xl font-black text-red-500 uppercase tracking-widest mb-2 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
           The Blood Pact
         </h2>
         <p className="text-zinc-400 font-mono text-xs uppercase px-2 leading-relaxed">
           Bind your fate to your squad. If one lifter misses a workout, the entire squad bleeds.
         </p>
-
         <div className="grid grid-cols-1 gap-4 mt-4 relative z-10">
-          <button 
-            onClick={() => setView('CREATE')}
-            className="w-full bg-red-900/20 border border-red-800 text-red-500 hover:bg-red-900/40 hover:text-white hover:border-red-500 font-black uppercase tracking-widest p-5 transition-all shadow-[0_0_15px_rgba(220,38,38,0.2)]"
-          >
+          <button onClick={() => setView('CREATE')} className="w-full bg-red-900/20 border border-red-800 text-red-500 hover:bg-red-900/40 hover:text-white hover:border-red-500 font-black uppercase tracking-widest p-5 transition-all shadow-[0_0_15px_rgba(220,38,38,0.2)]">
             Forge a New Pact
           </button>
-          
-          <button 
-            onClick={() => setView('JOIN')}
-            className="w-full bg-transparent border border-zinc-700 text-zinc-400 hover:border-zinc-400 hover:text-white font-black uppercase tracking-widest p-5 transition-all"
-          >
+          <button onClick={() => setView('JOIN')} className="w-full bg-transparent border border-zinc-700 text-zinc-400 hover:border-zinc-400 hover:text-white font-black uppercase tracking-widest p-5 transition-all">
             Honor an Invite
           </button>
         </div>
@@ -82,39 +180,25 @@ export default function BloodPactDashboard() {
           <button onClick={() => setView('MENU')} className="text-xs text-zinc-500 hover:text-red-500 uppercase font-black tracking-widest transition-colors">Abort</button>
         </div>
 
-        {/* Commitment Grid (Aligned with Lone Wolf UI) */}
+        {/* Commitment Grid */}
         <div className="flex flex-col gap-3 relative z-10">
-          <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
-            Select Commitment
-          </label>
+          <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">Select Commitment</label>
           <div className="grid grid-cols-2 gap-2">
             <button onClick={() => setDays(6)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 6 ? 'border-red-600 bg-red-900/20 text-red-500' : 'border-zinc-800 bg-transparent text-zinc-500 hover:border-zinc-600'}`}>
               <span className="font-black text-lg">PPL</span>
               <span className="text-[10px] uppercase font-bold tracking-widest mt-1">6 Days</span>
             </button>
-            
             <button onClick={() => setDays(4)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 4 ? 'border-red-600 bg-red-900/20 text-red-500' : 'border-zinc-800 bg-transparent text-zinc-500 hover:border-zinc-600'}`}>
               <span className="font-black text-lg">UPPER/LOWER</span>
               <span className="text-[10px] uppercase font-bold tracking-widest mt-1">4 Days</span>
             </button>
-            
             <button onClick={() => setDays(3)} className={`border-2 p-3 flex flex-col items-center justify-center transition-all ${days === 3 ? 'border-red-600 bg-red-900/20 text-red-500' : 'border-zinc-800 bg-transparent text-zinc-500 hover:border-zinc-600'}`}>
               <span className="font-black text-lg">FULL BODY</span>
               <span className="text-[10px] uppercase font-bold tracking-widest mt-1">3 Days</span>
             </button>
-            
             <div className={`border-2 flex flex-col items-center justify-center transition-all relative overflow-hidden ${![3, 4, 6].includes(days) ? 'border-red-600 bg-red-900/20' : 'border-zinc-800 bg-transparent hover:border-zinc-600'}`}>
-              <span className={`absolute top-2 text-[10px] uppercase font-bold tracking-widest ${![3, 4, 6].includes(days) ? 'text-red-500' : 'text-zinc-500'}`}>
-                CUSTOM DAYS
-              </span>
-              <input 
-                type="number" 
-                value={days} 
-                onChange={(e) => setDays(Number(e.target.value))} 
-                className="bg-transparent text-center text-white font-black text-2xl w-full h-full pt-5 pb-2 focus:outline-none appearance-none" 
-                min="1" 
-                max="365" 
-              />
+              <span className={`absolute top-2 text-[10px] uppercase font-bold tracking-widest ${![3, 4, 6].includes(days) ? 'text-red-500' : 'text-zinc-500'}`}>CUSTOM DAYS</span>
+              <input type="number" value={days} onChange={(e) => setDays(Number(e.target.value))} className="bg-transparent text-center text-white font-black text-2xl w-full h-full pt-5 pb-2 focus:outline-none appearance-none" min="1" max="365" />
             </div>
           </div>
         </div>
@@ -131,20 +215,8 @@ export default function BloodPactDashboard() {
         {/* The Guest List */}
         <div className="flex flex-col gap-4 relative z-10">
           <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">The Guest List (Solana Addresses)</label>
-          <input 
-            type="text" 
-            placeholder="Player 2 Wallet Address..." 
-            value={playerTwo} 
-            onChange={(e) => setPlayerTwo(e.target.value)} 
-            className="bg-transparent border border-zinc-800 text-white p-3 font-mono text-xs focus:outline-none focus:border-zinc-500 w-full" 
-          />
-          <input 
-            type="text" 
-            placeholder="Player 3 Wallet Address (Optional)..." 
-            value={playerThree} 
-            onChange={(e) => setPlayerThree(e.target.value)} 
-            className="bg-transparent border border-zinc-800 text-zinc-400 p-3 font-mono text-xs focus:outline-none focus:border-zinc-500 w-full" 
-          />
+          <input type="text" placeholder="Player 2 Wallet Address..." value={playerTwo} onChange={(e) => setPlayerTwo(e.target.value)} className="bg-transparent border border-zinc-800 text-white p-3 font-mono text-xs focus:outline-none focus:border-zinc-500 w-full" />
+          <input type="text" placeholder="Player 3 Wallet Address (Optional)..." value={playerThree} onChange={(e) => setPlayerThree(e.target.value)} className="bg-transparent border border-zinc-800 text-zinc-400 p-3 font-mono text-xs focus:outline-none focus:border-zinc-500 w-full" />
         </div>
 
         <button onClick={handleCreateSquad} disabled={isCreating} className={`w-full text-white font-black uppercase tracking-widest p-5 mt-2 transition-all relative z-10 ${isCreating ? 'bg-zinc-800/50 text-zinc-400 border border-zinc-700' : 'bg-red-600 hover:bg-red-500 shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] active:scale-[0.98]'}`}>
@@ -169,13 +241,7 @@ export default function BloodPactDashboard() {
 
         <div className="flex flex-col gap-2 relative z-10">
           <label className="text-xs font-black text-red-600 uppercase tracking-widest">Squad Leader's Wallet Address</label>
-          <input 
-            type="text" 
-            placeholder="Paste Player 1's Address here..." 
-            value={leaderAddress} 
-            onChange={(e) => setLeaderAddress(e.target.value)} 
-            className="bg-transparent border-2 border-zinc-800 text-white p-4 font-mono text-sm focus:outline-none focus:border-red-600 transition-colors w-full" 
-          />
+          <input type="text" placeholder="Paste Player 1's Address here..." value={leaderAddress} onChange={(e) => setLeaderAddress(e.target.value)} className="bg-transparent border-2 border-zinc-800 text-white p-4 font-mono text-sm focus:outline-none focus:border-red-600 transition-colors w-full" />
         </div>
 
         <button onClick={handleJoinSquad} disabled={isJoining} className={`w-full text-white font-black uppercase tracking-widest p-5 mt-4 transition-all relative z-10 ${isJoining ? 'bg-zinc-800/50 text-zinc-400 border border-zinc-700' : 'bg-red-600 hover:bg-red-500 shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] active:scale-[0.98]'}`}>
