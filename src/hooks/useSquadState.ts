@@ -28,7 +28,7 @@ export function useSquadState() {
 
         // Scan the guest lists for the connected wallet
         const myAddress = wallet.publicKey!.toBase58();
-        const mySquad = allSquads.find(squad => 
+        const mySquad = allSquads.find((squad : any) => 
           squad.account.playerOne.toBase58() === myAddress ||
           squad.account.playerTwo.toBase58() === myAddress ||
           squad.account.playerThree.toBase58() === myAddress
