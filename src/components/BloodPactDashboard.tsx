@@ -4,14 +4,18 @@ import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
 import { Buffer } from 'buffer';
 import toast from 'react-hot-toast';
 
-// IDL & Constants
+// IDL & Hooks
 import idl from '../idl/idl.json';
-import { PROGRAM_ID } from '../hooks/useVaultState'; // Reusing your program ID constant
+import { PROGRAM_ID } from '../hooks/useVaultState'; 
+import { useSquadState } from '../hooks/useSquadState'; // <-- NEW RADAR HOOK
 
 export default function BloodPactDashboard() {
   const { connection } = useConnection();
   const wallet = useWallet();
   const { publicKey, signTransaction } = wallet;
+
+  // SQUAD RADAR
+  const { squadData, isLoading: isSquadLoading } = useSquadState();
 
   // View State: 'MENU' | 'CREATE' | 'JOIN'
   const [view, setView] = useState<'MENU' | 'CREATE' | 'JOIN'>('MENU');
@@ -181,6 +185,75 @@ export default function BloodPactDashboard() {
       setIsJoining(false);
     }
   };
+
+  // --- RENDER 0: THE ACTIVE LOBBY / SQUAD VIEW ---
+  if (isSquadLoading) {
+    return <div className="text-zinc-500 font-mono text-center p-8 uppercase tracking-widest animate-pulse">Scanning Blockchain...</div>;
+  }
+
+  if (squadData) {
+    const isP2Empty = squadData.playerTwo.toBase58() === web3.SystemProgram.programId.toBase58();
+    const isP3Empty = squadData.playerThree.toBase58() === web3.SystemProgram.programId.toBase58();
+
+    return (
+      <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-50">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
+        
+        <div className="flex justify-between items-start border-b-2 border-zinc-900 pb-4 relative z-10">
+          <div>
+            <h2 className="text-2xl font-black uppercase text-white tracking-tight">Active Pact</h2>
+            <p className="text-zinc-500 font-mono text-[10px] uppercase mt-1">
+              Leader: {squadData.playerOne.toBase58().slice(0,4)}...{squadData.playerOne.toBase58().slice(-4)}
+            </p>
+          </div>
+          <div className="text-right">
+            <span className={`px-3 py-1 text-xs font-black uppercase tracking-widest ${squadData.protocolActive ? 'bg-red-900/40 text-red-500 border border-red-500' : 'bg-yellow-900/40 text-yellow-500 border border-yellow-500'}`}>
+              {squadData.protocolActive ? 'Protocol Live' : 'Awaiting Stakers'}
+            </span>
+          </div>
+        </div>
+
+        {/* Player Roster */}
+        <div className="flex flex-col gap-3 relative z-10">
+          <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">The Roster</label>
+          
+          {/* Player 1 (Always Staked if vault exists) */}
+          <div className="flex justify-between items-center bg-zinc-900/50 p-3 border border-zinc-800">
+            <span className="font-mono text-sm text-white">Player 1 (Creator)</span>
+            <span className="text-xs font-black text-green-500 uppercase">Staked</span>
+          </div>
+
+          {/* Player 2 */}
+          {!isP2Empty && (
+            <div className="flex justify-between items-center bg-zinc-900/50 p-3 border border-zinc-800">
+              <span className="font-mono text-sm text-white">
+                Player 2 ({squadData.playerTwo.toBase58().slice(0,4)}...{squadData.playerTwo.toBase58().slice(-4)})
+              </span>
+              {squadData.p2Staked ? (
+                <span className="text-xs font-black text-green-500 uppercase">Staked</span>
+              ) : (
+                <span className="text-xs font-black text-yellow-500 uppercase animate-pulse">Pending...</span>
+              )}
+            </div>
+          )}
+
+          {/* Player 3 */}
+          {!isP3Empty && (
+            <div className="flex justify-between items-center bg-zinc-900/50 p-3 border border-zinc-800">
+              <span className="font-mono text-sm text-white">
+                Player 3 ({squadData.playerThree.toBase58().slice(0,4)}...{squadData.playerThree.toBase58().slice(-4)})
+              </span>
+              {squadData.p3Staked ? (
+                <span className="text-xs font-black text-green-500 uppercase">Staked</span>
+              ) : (
+                <span className="text-xs font-black text-yellow-500 uppercase animate-pulse">Pending...</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // --- RENDER 1: THE CROSSROADS MENU ---
   if (view === 'MENU') {
