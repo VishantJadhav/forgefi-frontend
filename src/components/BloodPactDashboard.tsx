@@ -11,8 +11,7 @@ import { PROGRAM_ID } from '../hooks/useVaultState'; // Reusing your program ID 
 export default function BloodPactDashboard() {
   const { connection } = useConnection();
   const wallet = useWallet();
-  // ADDED sendTransaction HERE so we can bypass the black box
-  const { publicKey, signTransaction, sendTransaction } = wallet;
+  const { publicKey, signTransaction } = wallet;
 
   // View State: 'MENU' | 'CREATE' | 'JOIN'
   const [view, setView] = useState<'MENU' | 'CREATE' | 'JOIN'>('MENU');
@@ -93,7 +92,7 @@ export default function BloodPactDashboard() {
   // 2. HONOR THE INVITE (JOIN SQUAD) - DETECTIVE VERSION
   // ==========================================
   const handleJoinSquad = async () => {
-    if (!publicKey || !signTransaction || !sendTransaction) return;
+    if (!publicKey || !signTransaction) return;
     if (!leaderAddress) {
       toast.error("You need the Squad Leader's address to find the vault.");
       return;
@@ -157,38 +156,19 @@ export default function BloodPactDashboard() {
       }
 
       // ==========================================
-      // THE INTERROGATION: FORCE SOLANA TO CONFESS
+      // FINAL STEP: SIGN AND SEND
       // ==========================================
-      console.log("🕵️‍♂️ Compiling raw transaction...");
-      
-      const rawTx = await program.methods
+      const tx = await program.methods
         .joinSquad()
         .accounts({
           player: publicKey,
           squadVault: squadVaultPDA,
+          // Explicitly passing the System Program is critical for SOL transfers!
           systemProgram: web3.SystemProgram.programId,
         } as any)
-        .transaction();
+        .rpc({ skipPreflight: true }); // Phantom will simulate natively now.
 
-      rawTx.feePayer = publicKey;
-      rawTx.recentBlockhash = (await connection.getLatestBlockhash('confirmed')).blockhash;
-
-      console.log("🕵️‍♂️ Sending to Solana for manual simulation...");
-      
-      const simulation = await connection.simulateTransaction(rawTx);
-      
-      console.log("🔥 THE HIDDEN BLOCKCHAIN LOGS:", simulation.value.logs);
-      
-      if (simulation.value.err) {
-        console.error("🚨 FATAL ERROR OBJECT:", simulation.value.err);
-        toast.error("Simulation caught the error! Check your F12 Console.");
-        setIsJoining(false);
-        return; 
-      }
-
-      // If the simulation actually passes, send it through Phantom!
-      const signature = await sendTransaction(rawTx, connection);
-      console.log(`Joined Squad. Explorer: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
+      console.log(`Joined Squad. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
       toast.success("You have honored the invite. SOL locked.");
       
       // Return to menu
