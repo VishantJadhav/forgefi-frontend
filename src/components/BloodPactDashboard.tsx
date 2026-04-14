@@ -11,7 +11,8 @@ import { PROGRAM_ID } from '../hooks/useVaultState'; // Reusing your program ID 
 export default function BloodPactDashboard() {
   const { connection } = useConnection();
   const wallet = useWallet();
-  const { publicKey, signTransaction } = wallet;
+  // ADDED sendTransaction HERE so we can bypass the black box
+  const { publicKey, signTransaction, sendTransaction } = wallet;
 
   // View State: 'MENU' | 'CREATE' | 'JOIN'
   const [view, setView] = useState<'MENU' | 'CREATE' | 'JOIN'>('MENU');
@@ -72,12 +73,12 @@ export default function BloodPactDashboard() {
           squadVault: squadVaultPDA,
           systemProgram: web3.SystemProgram.programId,
         } as any)
-        .rpc();
+        .rpc({ skipPreflight: true });
 
       console.log(`Blood Pact Forged. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
       toast.success("Pact forged! Send your wallet address to your squad to invite them.");
       
-      // Return to menu (We will build the Lobby View next)
+      // Return to menu
       setView('MENU');
 
     } catch (error) {
@@ -89,10 +90,10 @@ export default function BloodPactDashboard() {
   };
 
   // ==========================================
-  // 2. HONOR THE INVITE (JOIN SQUAD)
+  // 2. HONOR THE INVITE (JOIN SQUAD) - DETECTIVE VERSION
   // ==========================================
   const handleJoinSquad = async () => {
-    if (!publicKey || !signTransaction) return;
+    if (!publicKey || !signTransaction || !sendTransaction) return;
     if (!leaderAddress) {
       toast.error("You need the Squad Leader's address to find the vault.");
       return;
@@ -103,46 +104,99 @@ export default function BloodPactDashboard() {
       const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
-      // Parse the Leader's address that the user pasted in
+      // Parse the Leader's address (with .trim() to fix copy-paste spaces!)
       let leaderKey: web3.PublicKey;
       try {
-        leaderKey = new web3.PublicKey(leaderAddress);
+        leaderKey = new web3.PublicKey(leaderAddress.trim());
       } catch (err) {
         toast.error("Invalid Squad Leader address format.");
         setIsJoining(false);
         return;
       }
 
-      // PDA is derived using the LEADER'S key, so we can find their specific vault
       const [squadVaultPDA] = web3.PublicKey.findProgramAddressSync(
         [Buffer.from("squad"), leaderKey.toBuffer()],
         PROGRAM_ID
       );
 
-      const tx = await program.methods
+      // ==========================================
+      // PRE-FLIGHT CHECK 1: DOES THE VAULT EXIST?
+      // ==========================================
+      let vaultData : any;
+      try {
+        // We actively ask the blockchain for the Vault data
+        vaultData = await program.account.squadVault.fetch(squadVaultPDA);
+      } catch (e) {
+        console.error("Vault fetch error:", e);
+        toast.error("BLOCKCHAIN ERROR: No vault found for this Leader's address. Did you paste the right one?");
+        setIsJoining(false);
+        return;
+      }
+
+      // ==========================================
+      // PRE-FLIGHT CHECK 2: ARE YOU INVITED?
+      // ==========================================
+      const myAddress = publicKey.toBase58();
+      const p2Address = vaultData.playerTwo.toBase58();
+      const p3Address = vaultData.playerThree.toBase58();
+
+      if (myAddress !== p2Address && myAddress !== p3Address) {
+        toast.error(`THE BOUNCER REJECTS YOU: This vault invited ${p2Address.slice(0,4)}... not you!`);
+        setIsJoining(false);
+        return;
+      }
+
+      // ==========================================
+      // PRE-FLIGHT CHECK 3: ALREADY STAKED?
+      // ==========================================
+      if ((myAddress === p2Address && vaultData.p2Staked) || 
+          (myAddress === p3Address && vaultData.p3Staked)) {
+        toast.error("You have already locked your SOL in this pact!");
+        setIsJoining(false);
+        return;
+      }
+
+      // ==========================================
+      // THE INTERROGATION: FORCE SOLANA TO CONFESS
+      // ==========================================
+      console.log("🕵️‍♂️ Compiling raw transaction...");
+      
+      const rawTx = await program.methods
         .joinSquad()
         .accounts({
           player: publicKey,
           squadVault: squadVaultPDA,
           systemProgram: web3.SystemProgram.programId,
         } as any)
-        .rpc();
+        .transaction();
 
-      console.log(`Joined Squad. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
+      rawTx.feePayer = publicKey;
+      rawTx.recentBlockhash = (await connection.getLatestBlockhash('confirmed')).blockhash;
+
+      console.log("🕵️‍♂️ Sending to Solana for manual simulation...");
+      
+      const simulation = await connection.simulateTransaction(rawTx);
+      
+      console.log("🔥 THE HIDDEN BLOCKCHAIN LOGS:", simulation.value.logs);
+      
+      if (simulation.value.err) {
+        console.error("🚨 FATAL ERROR OBJECT:", simulation.value.err);
+        toast.error("Simulation caught the error! Check your F12 Console.");
+        setIsJoining(false);
+        return; 
+      }
+
+      // If the simulation actually passes, send it through Phantom!
+      const signature = await sendTransaction(rawTx, connection);
+      console.log(`Joined Squad. Explorer: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
       toast.success("You have honored the invite. SOL locked.");
       
-      // Return to menu (We will build the Lobby View next)
+      // Return to menu
       setView('MENU');
 
     } catch (error: any) {
       console.error("Failed to join squad:", error);
-      
-      // Custom Error Handling: Did the Bouncer reject them?
-      if (error.toString().includes("NotInvited") || error.toString().includes("6005")) {
-        toast.error("The Bouncer rejected you. You are not on the guest list.");
-      } else {
-        toast.error("Transaction failed. Make sure the vault exists.");
-      }
+      toast.error("Phantom rejected the signature, or you lack SOL.");
     } finally {
       setIsJoining(false);
     }
