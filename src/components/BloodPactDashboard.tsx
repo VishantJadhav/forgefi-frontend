@@ -4,18 +4,24 @@ import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
 import { Buffer } from 'buffer';
 import toast from 'react-hot-toast';
 
-// IDL & Hooks
+// IDL & Components
 import idl from '../idl/idl.json';
+import DeadlineTimer from './DeadlineTimer';
+import IronMatrix from './IronMatrix';
+
+// Custom Hooks
 import { PROGRAM_ID } from '../hooks/useVaultState'; 
 import { useSquadState } from '../hooks/useSquadState'; 
+import { useGeolocation, ALLOWED_DISTANCE_METERS, getDistanceInMeters } from '../hooks/useGeolocation';
 
 export default function BloodPactDashboard() {
   const { connection } = useConnection();
   const wallet = useWallet();
   const { publicKey, signTransaction } = wallet;
 
-  // SQUAD RADAR
-  const { squadData, isLoading: isSquadLoading } = useSquadState();
+  // RADAR & ORACLE
+  const { squadData, squadPda, isLoading: isSquadLoading } = useSquadState();
+  const { gymLocation, calibrateGymLocation } = useGeolocation(publicKey?.toBase58());
 
   // View State: 'MENU' | 'CREATE' | 'JOIN'
   const [view, setView] = useState<'MENU' | 'CREATE' | 'JOIN'>('MENU');
@@ -30,6 +36,7 @@ export default function BloodPactDashboard() {
   // Join Squad State
   const [leaderAddress, setLeaderAddress] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // ==========================================
   // 1. FORGE THE PACT
@@ -164,6 +171,46 @@ export default function BloodPactDashboard() {
     }
   };
 
+  // ==========================================
+  // 3. VERIFY SQUAD WORKOUT (STUB WITH GPS)
+  // ==========================================
+  const handleVerifySquad = async () => {
+    if (!publicKey || !signTransaction) return;
+    if (!gymLocation) {
+      toast.error("Please calibrate your gym location first!");
+      return;
+    }
+
+    setIsVerifying(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const currentLat = position.coords.latitude;
+        const currentLng = position.coords.longitude;
+        const distance = getDistanceInMeters(gymLocation.lat, gymLocation.lng, currentLat, currentLng);
+
+        if (distance > ALLOWED_DISTANCE_METERS) {
+          toast.error(`ORACLE REJECTED: You are ${Math.round(distance)} meters away from the gym. Get to the iron.`);
+          setIsVerifying(false);
+          return;
+        }
+
+        // --- STUB: We will replace this toast with the real Anchor CPI call next! ---
+        toast("Oracle passed! We need to write the Rust verify logic to finish this.", { icon: '🚧' });
+        setIsVerifying(false);
+      },
+      (error) => {
+        setIsVerifying(false);
+        let errorMessage = "ORACLE FAILURE: Unknown GPS error.";
+        if(error.code === 1) errorMessage = "LOCATION BLOCKED: Turn on GPS permissions and try again.";
+        if(error.code === 2) errorMessage = "SIGNAL LOST: Turn off VPN or walk near a window.";
+        if(error.code === 3) errorMessage = "TIMEOUT: GPS signal too weak. Connect to Wi-Fi.";
+        toast.error(errorMessage);
+      },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
+    );
+  };
+
   // --- RENDER 0: THE ACTIVE LOBBY / SQUAD VIEW ---
   if (isSquadLoading) {
     return <div className="text-zinc-500 font-mono text-center p-8 uppercase tracking-widest animate-pulse">Scanning Blockchain...</div>;
@@ -173,31 +220,12 @@ export default function BloodPactDashboard() {
     const isP2Empty = squadData.playerTwo.toBase58() === web3.SystemProgram.programId.toBase58();
     const isP3Empty = squadData.playerThree.toBase58() === web3.SystemProgram.programId.toBase58();
     
-    const totalSol = (squadData.totalVaultBalance.toNumber() / web3.LAMPORTS_PER_SOL).toFixed(2);
-    const targetDays = squadData.daysCommitted;
-    const completedDays = squadData.daysCompleted;
-    const missedDays = squadData.missedDays;
-
-    // HEATMAP GENERATOR LOGIC
-    const renderHeatmap = () => {
-      const blocks = [];
-      for (let i = 1; i <= targetDays; i++) {
-        let statusClass = "bg-zinc-800 border-zinc-700"; // Pending future day
-        
-        if (i <= completedDays) {
-          statusClass = "bg-green-500 border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]"; // Success
-        } else if (i <= completedDays + missedDays) {
-          statusClass = "bg-red-600 border-red-500 shadow-[0_0_10px_rgba(220,38,38,0.4)]"; // Missed / Slashed
-        } else if (i === completedDays + missedDays + 1 && squadData.protocolActive) {
-          statusClass = "bg-zinc-700 border-zinc-500 animate-pulse"; // The CURRENT active day
-        }
-
-        blocks.push(
-          <div key={i} className={`w-full aspect-square border ${statusClass} rounded-sm transition-all`} />
-        );
-      }
-      return blocks;
-    };
+    // Extract current user's Last Check-In for the Deadline Timer
+    const myAddress = publicKey?.toBase58();
+    let myLastCheckIn = 0;
+    if (myAddress === squadData.playerOne.toBase58()) myLastCheckIn = Number(squadData.p1LastCheckIn.toString());
+    else if (myAddress === squadData.playerTwo.toBase58()) myLastCheckIn = Number(squadData.p2LastCheckIn.toString());
+    else if (myAddress === squadData.playerThree.toBase58()) myLastCheckIn = Number(squadData.p3LastCheckIn.toString());
 
     return (
       <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-50">
@@ -218,43 +246,58 @@ export default function BloodPactDashboard() {
           </div>
         </div>
 
-        {/* VAULT STATS GRID */}
+        {/* VAULT STATS GRID (Lone Wolf Style) */}
         {squadData.protocolActive && (
-          <div className="grid grid-cols-3 gap-2 relative z-10">
-            <div className="bg-zinc-900/50 border border-zinc-800 p-3 flex flex-col items-center justify-center">
-              <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">Blood Pool</span>
-              <span className="text-xl font-mono text-red-500">{totalSol} SOL</span>
+          <div className="grid grid-cols-2 gap-4 relative z-10">
+            <div className="border border-zinc-900 bg-transparent p-4 flex flex-col items-center justify-center text-center">
+              <span className="text-xs text-zinc-500 uppercase font-bold tracking-widest mb-1">Blood Pool</span>
+              <span className="text-2xl font-black text-red-500 font-mono drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                {(
+                  (Number(squadData.totalVaultBalance.toString()) / web3.LAMPORTS_PER_SOL) - 
+                  ((Number(squadData.totalVaultBalance.toString()) / web3.LAMPORTS_PER_SOL) * 0.1 * (squadData.missedDays || 0))
+                ).toFixed(2)} SOL
+              </span>
+              {squadData.missedDays > 0 && (
+                <span className="text-[10px] text-red-600 font-black tracking-widest uppercase mt-1 animate-pulse">
+                  Bleeding (-{squadData.missedDays * 10}%)
+                </span>
+              )}
             </div>
-            <div className="bg-zinc-900/50 border border-zinc-800 p-3 flex flex-col items-center justify-center">
-              <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">Target</span>
-              <span className="text-xl font-mono text-white">{targetDays} Days</span>
-            </div>
-            <div className="bg-zinc-900/50 border border-zinc-800 p-3 flex flex-col items-center justify-center">
-              <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">Completed</span>
-              <span className="text-xl font-mono text-white">{completedDays}</span>
+            <div className="border border-zinc-900 bg-transparent p-4 flex flex-col items-center justify-center">
+              <span className="text-xs text-zinc-500 uppercase font-bold tracking-widest mb-1">Commitment</span>
+              <span className="text-2xl font-black text-white font-mono">
+                {squadData.daysCommitted} Days
+              </span>
             </div>
           </div>
         )}
 
-        {/* THE HEATMAP */}
+        {/* DEADLINE TIMER (Lone Wolf Style) */}
         {squadData.protocolActive && (
-          <div className="flex flex-col gap-2 relative z-10">
-            <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">Squad Progress</label>
-            <div className="grid grid-cols-7 md:grid-cols-10 gap-2 bg-zinc-950 p-4 border border-zinc-900">
-              {renderHeatmap()}
-            </div>
+          <div className="relative z-10 -mt-2">
+            <DeadlineTimer lastCheckIn={myLastCheckIn} daysCompleted={squadData.daysCompleted} />
+          </div>
+        )}
+
+        {/* IRON MATRIX (Lone Wolf Style) */}
+        {squadData.protocolActive && (
+          <div className="relative z-10 -mt-2">
+            <IronMatrix 
+              daysCommitted={squadData.daysCommitted} 
+              daysCompleted={squadData.daysCompleted} 
+              missedDays={squadData.missedDays || 0} 
+              userKey={squadPda || undefined} 
+            />
           </div>
         )}
 
         {/* THE ROSTER */}
-        <div className="flex flex-col gap-3 relative z-10">
+        <div className="flex flex-col gap-3 relative z-10 mt-2">
           <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">The Roster</label>
-          
           <div className="flex justify-between items-center bg-zinc-900/50 p-3 border border-zinc-800">
             <span className="font-mono text-sm text-white">Player 1 (Creator)</span>
             <span className="text-xs font-black text-green-500 uppercase">Staked</span>
           </div>
-
           {!isP2Empty && (
             <div className="flex justify-between items-center bg-zinc-900/50 p-3 border border-zinc-800">
               <span className="font-mono text-sm text-white">
@@ -267,7 +310,6 @@ export default function BloodPactDashboard() {
               )}
             </div>
           )}
-
           {!isP3Empty && (
             <div className="flex justify-between items-center bg-zinc-900/50 p-3 border border-zinc-800">
               <span className="font-mono text-sm text-white">
@@ -282,14 +324,34 @@ export default function BloodPactDashboard() {
           )}
         </div>
 
-        {/* CHECK-IN BUTTON (STUB) */}
+        {/* ORACLE GPS & VERIFY BUTTON (Lone Wolf Style) */}
         {squadData.protocolActive && (
-          <button 
-            onClick={() => toast("We need to write the Rust Smart Contract logic for this first!", { icon: '🚧' })}
-            className="w-full bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-widest p-5 mt-2 transition-all relative z-10 shadow-[0_0_20px_rgba(220,38,38,0.3)] active:scale-[0.98] border border-red-500"
-          >
-            Verify Squad Workout
-          </button>
+          <div className="flex flex-col gap-2 mt-4 relative z-10">
+            {!gymLocation ? (
+              <button onClick={calibrateGymLocation} className="w-full bg-blue-900/20 text-blue-400 border border-blue-900/50 font-black uppercase tracking-widest p-3 text-xs hover:bg-blue-900/40 transition-colors">
+                Set Current Location as Gym
+              </button>
+            ) : (
+              <div className="flex justify-between items-center bg-transparent border border-green-900/50 p-2 px-4 mb-2">
+                <span className="text-[10px] text-green-500 font-mono tracking-widest uppercase flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                  Gym Locked
+                </span>
+                <button onClick={calibrateGymLocation} className="text-[10px] text-zinc-500 hover:text-zinc-300 cursor-pointer uppercase tracking-widest underline decoration-zinc-700 underline-offset-4">
+                  Recalibrate
+                </button>
+              </div>
+            )}
+            <button 
+              onClick={handleVerifySquad}
+              disabled={isVerifying || !gymLocation}
+              className={`w-full font-black uppercase tracking-widest p-5 transition-all border ${
+                isVerifying || !gymLocation ? 'bg-transparent text-zinc-600 border-zinc-800 cursor-not-allowed' : 'bg-zinc-900/80 text-white hover:bg-zinc-800 border-zinc-600 hover:border-zinc-400 shadow-[0_0_15px_rgba(255,255,255,0.05)] active:scale-[0.98]'
+              }`}
+            >
+              {isVerifying ? 'Checking Location...' : 'Verify Squad Workout'}
+            </button>
+          </div>
         )}
       </div>
     );
