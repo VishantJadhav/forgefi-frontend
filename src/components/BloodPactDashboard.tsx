@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 // IDL & Hooks
 import idl from '../idl/idl.json';
 import { PROGRAM_ID } from '../hooks/useVaultState'; 
-import { useSquadState } from '../hooks/useSquadState'; // <-- NEW RADAR HOOK
+import { useSquadState } from '../hooks/useSquadState'; 
 
 export default function BloodPactDashboard() {
   const { connection } = useConnection();
@@ -32,7 +32,7 @@ export default function BloodPactDashboard() {
   const [isJoining, setIsJoining] = useState(false);
 
   // ==========================================
-  // 1. FORGE THE PACT (CREATE SQUAD)
+  // 1. FORGE THE PACT
   // ==========================================
   const handleCreateSquad = async () => {
     if (!publicKey || !signTransaction) return;
@@ -46,13 +46,11 @@ export default function BloodPactDashboard() {
       const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
-      // Validate and parse the friend's addresses
       let p2Key: web3.PublicKey;
       let p3Key: web3.PublicKey;
 
       try {
         p2Key = new web3.PublicKey(playerTwo);
-        // If Player 3 is empty, pass the SystemProgram ID to tell Rust this is a Duo
         p3Key = playerThree ? new web3.PublicKey(playerThree) : web3.SystemProgram.programId;
       } catch (err) {
         toast.error("Invalid Solana address format for Player 2 or 3.");
@@ -63,7 +61,6 @@ export default function BloodPactDashboard() {
       const lamports = new BN(Math.floor(stakeAmount * web3.LAMPORTS_PER_SOL));
       const daysU8 = days;
 
-      // PDA is derived using PLAYER 1's key (The Creator)
       const [squadVaultPDA] = web3.PublicKey.findProgramAddressSync(
         [Buffer.from("squad"), publicKey.toBuffer()],
         PROGRAM_ID
@@ -80,8 +77,6 @@ export default function BloodPactDashboard() {
 
       console.log(`Blood Pact Forged. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
       toast.success("Pact forged! Send your wallet address to your squad to invite them.");
-      
-      // Return to menu
       setView('MENU');
 
     } catch (error) {
@@ -93,7 +88,7 @@ export default function BloodPactDashboard() {
   };
 
   // ==========================================
-  // 2. HONOR THE INVITE (JOIN SQUAD) - DETECTIVE VERSION
+  // 2. HONOR THE INVITE
   // ==========================================
   const handleJoinSquad = async () => {
     if (!publicKey || !signTransaction) return;
@@ -107,7 +102,6 @@ export default function BloodPactDashboard() {
       const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
-      // Parse the Leader's address (with .trim() to fix copy-paste spaces!)
       let leaderKey: web3.PublicKey;
       try {
         leaderKey = new web3.PublicKey(leaderAddress.trim());
@@ -122,12 +116,8 @@ export default function BloodPactDashboard() {
         PROGRAM_ID
       );
 
-      // ==========================================
-      // PRE-FLIGHT CHECK 1: DOES THE VAULT EXIST?
-      // ==========================================
       let vaultData : any;
       try {
-        // We actively ask the blockchain for the Vault data
         vaultData = await program.account.squadVault.fetch(squadVaultPDA);
       } catch (e) {
         console.error("Vault fetch error:", e);
@@ -136,9 +126,6 @@ export default function BloodPactDashboard() {
         return;
       }
 
-      // ==========================================
-      // PRE-FLIGHT CHECK 2: ARE YOU INVITED?
-      // ==========================================
       const myAddress = publicKey.toBase58();
       const p2Address = vaultData.playerTwo.toBase58();
       const p3Address = vaultData.playerThree.toBase58();
@@ -149,9 +136,6 @@ export default function BloodPactDashboard() {
         return;
       }
 
-      // ==========================================
-      // PRE-FLIGHT CHECK 3: ALREADY STAKED?
-      // ==========================================
       if ((myAddress === p2Address && vaultData.p2Staked) || 
           (myAddress === p3Address && vaultData.p3Staked)) {
         toast.error("You have already locked your SOL in this pact!");
@@ -159,23 +143,17 @@ export default function BloodPactDashboard() {
         return;
       }
 
-      // ==========================================
-      // FINAL STEP: SIGN AND SEND
-      // ==========================================
       const tx = await program.methods
         .joinSquad()
         .accounts({
           player: publicKey,
           squadVault: squadVaultPDA,
-          // Explicitly passing the System Program is critical for SOL transfers!
           systemProgram: web3.SystemProgram.programId,
         } as any)
-        .rpc({ skipPreflight: true }); // Phantom will simulate natively now.
+        .rpc({ skipPreflight: true }); 
 
       console.log(`Joined Squad. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
       toast.success("You have honored the invite. SOL locked.");
-      
-      // Return to menu
       setView('MENU');
 
     } catch (error: any) {
@@ -194,11 +172,38 @@ export default function BloodPactDashboard() {
   if (squadData) {
     const isP2Empty = squadData.playerTwo.toBase58() === web3.SystemProgram.programId.toBase58();
     const isP3Empty = squadData.playerThree.toBase58() === web3.SystemProgram.programId.toBase58();
+    
+    const totalSol = (squadData.totalVaultBalance.toNumber() / web3.LAMPORTS_PER_SOL).toFixed(2);
+    const targetDays = squadData.daysCommitted;
+    const completedDays = squadData.daysCompleted;
+    const missedDays = squadData.missedDays;
+
+    // HEATMAP GENERATOR LOGIC
+    const renderHeatmap = () => {
+      const blocks = [];
+      for (let i = 1; i <= targetDays; i++) {
+        let statusClass = "bg-zinc-800 border-zinc-700"; // Pending future day
+        
+        if (i <= completedDays) {
+          statusClass = "bg-green-500 border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]"; // Success
+        } else if (i <= completedDays + missedDays) {
+          statusClass = "bg-red-600 border-red-500 shadow-[0_0_10px_rgba(220,38,38,0.4)]"; // Missed / Slashed
+        } else if (i === completedDays + missedDays + 1 && squadData.protocolActive) {
+          statusClass = "bg-zinc-700 border-zinc-500 animate-pulse"; // The CURRENT active day
+        }
+
+        blocks.push(
+          <div key={i} className={`w-full aspect-square border ${statusClass} rounded-sm transition-all`} />
+        );
+      }
+      return blocks;
+    };
 
     return (
       <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-50">
         <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
         
+        {/* Header */}
         <div className="flex justify-between items-start border-b-2 border-zinc-900 pb-4 relative z-10">
           <div>
             <h2 className="text-2xl font-black uppercase text-white tracking-tight">Active Pact</h2>
@@ -207,23 +212,49 @@ export default function BloodPactDashboard() {
             </p>
           </div>
           <div className="text-right">
-            <span className={`px-3 py-1 text-xs font-black uppercase tracking-widest ${squadData.protocolActive ? 'bg-red-900/40 text-red-500 border border-red-500' : 'bg-yellow-900/40 text-yellow-500 border border-yellow-500'}`}>
+            <span className={`px-3 py-1 text-xs font-black uppercase tracking-widest ${squadData.protocolActive ? 'bg-red-900/40 text-red-500 border border-red-500 shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'bg-yellow-900/40 text-yellow-500 border border-yellow-500'}`}>
               {squadData.protocolActive ? 'Protocol Live' : 'Awaiting Stakers'}
             </span>
           </div>
         </div>
 
-        {/* Player Roster */}
+        {/* VAULT STATS GRID */}
+        {squadData.protocolActive && (
+          <div className="grid grid-cols-3 gap-2 relative z-10">
+            <div className="bg-zinc-900/50 border border-zinc-800 p-3 flex flex-col items-center justify-center">
+              <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">Blood Pool</span>
+              <span className="text-xl font-mono text-red-500">{totalSol} SOL</span>
+            </div>
+            <div className="bg-zinc-900/50 border border-zinc-800 p-3 flex flex-col items-center justify-center">
+              <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">Target</span>
+              <span className="text-xl font-mono text-white">{targetDays} Days</span>
+            </div>
+            <div className="bg-zinc-900/50 border border-zinc-800 p-3 flex flex-col items-center justify-center">
+              <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">Completed</span>
+              <span className="text-xl font-mono text-white">{completedDays}</span>
+            </div>
+          </div>
+        )}
+
+        {/* THE HEATMAP */}
+        {squadData.protocolActive && (
+          <div className="flex flex-col gap-2 relative z-10">
+            <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">Squad Progress</label>
+            <div className="grid grid-cols-7 md:grid-cols-10 gap-2 bg-zinc-950 p-4 border border-zinc-900">
+              {renderHeatmap()}
+            </div>
+          </div>
+        )}
+
+        {/* THE ROSTER */}
         <div className="flex flex-col gap-3 relative z-10">
           <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">The Roster</label>
           
-          {/* Player 1 (Always Staked if vault exists) */}
           <div className="flex justify-between items-center bg-zinc-900/50 p-3 border border-zinc-800">
             <span className="font-mono text-sm text-white">Player 1 (Creator)</span>
             <span className="text-xs font-black text-green-500 uppercase">Staked</span>
           </div>
 
-          {/* Player 2 */}
           {!isP2Empty && (
             <div className="flex justify-between items-center bg-zinc-900/50 p-3 border border-zinc-800">
               <span className="font-mono text-sm text-white">
@@ -237,7 +268,6 @@ export default function BloodPactDashboard() {
             </div>
           )}
 
-          {/* Player 3 */}
           {!isP3Empty && (
             <div className="flex justify-between items-center bg-zinc-900/50 p-3 border border-zinc-800">
               <span className="font-mono text-sm text-white">
@@ -251,6 +281,16 @@ export default function BloodPactDashboard() {
             </div>
           )}
         </div>
+
+        {/* CHECK-IN BUTTON (STUB) */}
+        {squadData.protocolActive && (
+          <button 
+            onClick={() => toast("We need to write the Rust Smart Contract logic for this first!", { icon: '🚧' })}
+            className="w-full bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-widest p-5 mt-2 transition-all relative z-10 shadow-[0_0_20px_rgba(220,38,38,0.3)] active:scale-[0.98] border border-red-500"
+          >
+            Verify Squad Workout
+          </button>
+        )}
       </div>
     );
   }
