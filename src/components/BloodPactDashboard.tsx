@@ -172,12 +172,16 @@ export default function BloodPactDashboard() {
   };
 
   // ==========================================
-  // 3. VERIFY SQUAD WORKOUT (STUB WITH GPS)
+  // 3. VERIFY SQUAD WORKOUT (WITH REAL SMART CONTRACT CALL)
   // ==========================================
   const handleVerifySquad = async () => {
     if (!publicKey || !signTransaction) return;
     if (!gymLocation) {
       toast.error("Please calibrate your gym location first!");
+      return;
+    }
+    if (!squadPda) {
+      toast.error("Vault not found. Radar is scanning...");
       return;
     }
 
@@ -195,9 +199,36 @@ export default function BloodPactDashboard() {
           return;
         }
 
-        // --- STUB: We will replace this toast with the real Anchor CPI call next! ---
-        toast("Oracle passed! We need to write the Rust verify logic to finish this.", { icon: '🚧' });
-        setIsVerifying(false);
+        try {
+          // --- THE REAL BLOCKCHAIN CALL ---
+          const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
+          const program = new Program(idl as any, PROGRAM_ID, provider);
+
+          const tx = await program.methods
+            .verifySquadWorkout()
+            .accounts({
+              player: publicKey,
+              squadVault: new web3.PublicKey(squadPda),
+            } as any)
+            .rpc();
+
+          console.log(`Squad Verify successful. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
+          toast.success("Workout verified on-chain! Awaiting squadmates.");
+
+        } catch (error: any) {
+          console.error("Failed to verify squad workout:", error);
+          
+          // Catch our custom Rust errors to show brutal UI feedback
+          if (error.toString().includes("WorkoutTooSoon") || error.toString().includes("6000")) {
+            toast.error("RECOVERY PERIOD: Muscles still repairing. Iron cools in 10 seconds (Demo).");
+          } else if (error.toString().includes("MissedDeadline") || error.toString().includes("6003")) {
+            toast.error("GUILLOTINE: You missed your window. Your vault is bleeding.");
+          } else {
+            toast.error("Transaction failed or rejected by lifter.");
+          }
+        } finally {
+          setIsVerifying(false);
+        }
       },
       (error) => {
         setIsVerifying(false);
