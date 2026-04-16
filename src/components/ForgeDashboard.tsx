@@ -85,14 +85,14 @@ export default function ForgeDashboard() {
         {/* THE MAIN INTERFACE */}
         <div id="staking-forge-section" className="w-full flex-grow flex justify-center items-start relative z-10 pt-28 md:pt-12 pb-24 px-4">
           {!connected ? (
-            <div className="w-full max-w-md animate-fade-in mx-auto flex justify-center mt-10">
+            <div className="w-full max-w-md animate-fade-in mx-auto flex justify-center mt-10 z-[100]">
               <WalletMultiButton className="!bg-red-600 hover:!bg-red-700 transition-colors rounded-none font-black uppercase tracking-widest px-8 py-6 w-full !justify-center items-center text-lg shadow-[0_0_30px_rgba(220,38,38,0.2)]" />
             </div>
           ) : (
             <div className="w-full max-w-md flex flex-col gap-6 animate-fade-in mt-10">
               
               {/* Global Wallet Info Card */}
-              <div className="flex flex-col items-center border-2 border-zinc-900 bg-black/60 backdrop-blur-sm p-6 shadow-xl relative z-50">
+              <div className="flex flex-col items-center border-2 border-zinc-900 bg-black/60 backdrop-blur-sm p-6 shadow-xl relative z-[100]">
                 <h2 className="text-sm font-black mb-3 uppercase text-zinc-400 tracking-widest">Active Lifter</h2>
                 <p className="text-green-500 mb-6 font-mono bg-transparent px-4 py-2 text-sm border border-green-900/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]">
                   {publicKey?.toBase58().slice(0, 4)}...{publicKey?.toBase58().slice(-4)}

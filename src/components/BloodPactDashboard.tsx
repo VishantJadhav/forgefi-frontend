@@ -259,7 +259,7 @@ export default function BloodPactDashboard() {
     else if (myAddress === squadData.playerThree.toBase58()) myLastCheckIn = Number(squadData.p3LastCheckIn.toString());
 
     return (
-      <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-50">
+      <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-10">
         <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
         
         {/* Header */}
@@ -391,7 +391,7 @@ export default function BloodPactDashboard() {
   // --- RENDER 1: THE CROSSROADS MENU ---
   if (view === 'MENU') {
     return (
-      <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-50 text-center">
+      <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-10 text-center">
         <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
         <h2 className="text-3xl font-black text-red-500 uppercase tracking-widest mb-2 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
           The Blood Pact
@@ -414,7 +414,7 @@ export default function BloodPactDashboard() {
   // --- RENDER 2: CREATE SQUAD FORM ---
   if (view === 'CREATE') {
     return (
-      <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden z-50">
+      <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden z-10">
         <div className="flex justify-between items-center border-b-2 border-zinc-900 pb-4 relative z-10">
           <h2 className="text-2xl font-black uppercase text-white tracking-tight">Forge Pact</h2>
           <button onClick={() => setView('MENU')} className="text-xs text-zinc-500 hover:text-red-500 uppercase font-black tracking-widest transition-colors">Abort</button>
@@ -469,7 +469,7 @@ export default function BloodPactDashboard() {
   // --- RENDER 3: JOIN SQUAD FORM ---
   if (view === 'JOIN') {
     return (
-      <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden z-50">
+      <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden z-10">
         <div className="flex justify-between items-center border-b-2 border-zinc-900 pb-4 relative z-10">
           <h2 className="text-2xl font-black uppercase text-white tracking-tight">Honor Invite</h2>
           <button onClick={() => setView('MENU')} className="text-xs text-zinc-500 hover:text-red-500 uppercase font-black tracking-widest transition-colors">Abort</button>

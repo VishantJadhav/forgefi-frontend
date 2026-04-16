@@ -188,7 +188,7 @@ export default function LoneWolfDashboard() {
   // --- RENDER DYNAMIC UI FOR SINGLE PLAYER ---
   if (isChecking) {
     return (
-      <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-12 text-center text-zinc-500 font-mono uppercase tracking-widest animate-pulse shadow-2xl relative z-50">
+      <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-12 text-center text-zinc-500 font-mono uppercase tracking-widest animate-pulse shadow-2xl relative z-10">
         Scanning Blockchain...
       </div>
     );
@@ -196,7 +196,7 @@ export default function LoneWolfDashboard() {
 
   if (activeStake?.missedDays === 999) {
     return (
-      <div className="border-2 border-red-900 bg-red-950/40 backdrop-blur-md p-8 shadow-[0_0_40px_rgba(220,38,38,0.3)] flex flex-col items-center text-center relative overflow-hidden z-50">
+      <div className="border-2 border-red-900 bg-red-950/40 backdrop-blur-md p-8 shadow-[0_0_40px_rgba(220,38,38,0.3)] flex flex-col items-center text-center relative overflow-hidden z-10">
         <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/20 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
         <div className="w-16 h-16 bg-red-900/40 rounded-full flex items-center justify-center mb-6 border border-red-600 relative z-10 animate-pulse">
           <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,7 +224,7 @@ export default function LoneWolfDashboard() {
 
   if (activeStake) {
     return (
-      <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-50">
+      <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-10">
         <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
         <div className="flex justify-between items-center border-b-2 border-zinc-900 pb-4 relative z-10">
           <h2 className="text-2xl font-black uppercase text-white tracking-tight">Active Protocol</h2>
@@ -289,7 +289,7 @@ export default function LoneWolfDashboard() {
   }
 
   return (
-    <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden z-50">
+    <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden z-10">
       <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/5 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
       <h2 className="text-3xl font-black uppercase text-white border-b-2 border-zinc-900 pb-4 tracking-tight relative z-10">
         Lock Your Stake
