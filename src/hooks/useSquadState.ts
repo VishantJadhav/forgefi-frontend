@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider } from '@coral-xyz/anchor';
 import idl from '../idl/idl.json';
-import { PROGRAM_ID } from './useVaultState'; // Reusing your program ID
+import { PROGRAM_ID } from './useVaultState';
 
 export function useSquadState() {
   const { connection } = useConnection();
@@ -23,10 +23,9 @@ export function useSquadState() {
         const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
         const program = new Program(idl as any, PROGRAM_ID, provider);
 
-        // Fetch EVERY Squad Vault on the network
-        const allSquads = await program.account.squadVault.all();
+        // 🚨 UPGRADED TO V2 🚨
+        const allSquads = await program.account.squadVaultV2.all();
 
-        // Scan the guest lists for the connected wallet
         const myAddress = wallet.publicKey!.toBase58();
         const mySquad = allSquads.find((squad : any) => 
           squad.account.playerOne.toBase58() === myAddress ||
@@ -49,8 +48,6 @@ export function useSquadState() {
     };
 
     fetchSquad();
-    
-    // Refresh the radar every 5 seconds so you see when friends join!
     const interval = setInterval(fetchSquad, 5000);
     return () => clearInterval(interval);
   }, [wallet.publicKey, connection]);
