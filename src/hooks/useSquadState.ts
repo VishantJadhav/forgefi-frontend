@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet, useAnchorWallet } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider } from '@coral-xyz/anchor';
 import idl from '../idl/idl.json';
 import { PROGRAM_ID } from './useVaultState';
@@ -7,12 +7,14 @@ import { PROGRAM_ID } from './useVaultState';
 export function useSquadState() {
   const { connection } = useConnection();
   const wallet = useWallet();
+  const anchorWallet = useAnchorWallet(); // 🚨 THE FIX 🚨
   const [squadData, setSquadData] = useState<any>(null);
   const [squadPda, setSquadPda] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!wallet.publicKey) {
+    // Check both standard wallet AND anchorWallet
+    if (!wallet.publicKey || !anchorWallet) {
       setSquadData(null);
       setIsLoading(false);
       return;
@@ -20,10 +22,10 @@ export function useSquadState() {
 
     const fetchSquad = async () => {
       try {
-        const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
+        // Use anchorWallet instead of (wallet as any)
+        const provider = new AnchorProvider(connection, anchorWallet, { preflightCommitment: 'confirmed' });
         const program = new Program(idl as any, PROGRAM_ID, provider);
 
-        // 🚨 UPGRADED TO V2 🚨
         const allSquads = await program.account.squadVaultV2.all();
 
         const myAddress = wallet.publicKey!.toBase58();
@@ -50,7 +52,7 @@ export function useSquadState() {
     fetchSquad();
     const interval = setInterval(fetchSquad, 5000);
     return () => clearInterval(interval);
-  }, [wallet.publicKey, connection]);
+  }, [wallet.publicKey, anchorWallet, connection]);
 
   return { squadData, squadPda, isLoading };
 }

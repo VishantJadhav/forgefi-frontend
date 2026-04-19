@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet, useAnchorWallet } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
 import { Buffer } from 'buffer';
 import toast from 'react-hot-toast';
@@ -15,7 +15,8 @@ import { useGeolocation, ALLOWED_DISTANCE_METERS, getDistanceInMeters } from '..
 export default function BloodPactDashboard() {
   const { connection } = useConnection();
   const wallet = useWallet();
-  const { publicKey, signTransaction } = wallet;
+  const anchorWallet = useAnchorWallet(); 
+  const { publicKey, connected } = wallet; 
 
   const { squadData, squadPda, isLoading: isSquadLoading } = useSquadState();
   const { gymLocation, calibrateGymLocation } = useGeolocation(publicKey?.toBase58());
@@ -33,10 +34,13 @@ export default function BloodPactDashboard() {
   const [isVerifying, setIsVerifying] = useState(false);
 
   // ==========================================
-  // 1. FORGE THE PACT (WITH SIMULATION BYPASS)
+  // 1. FORGE THE PACT
   // ==========================================
   const handleCreateSquad = async () => {
-    if (!publicKey || !signTransaction) return;
+    if (!connected || !publicKey || !anchorWallet) {
+      toast.error("Wallet disconnected. Please reconnect.");
+      return;
+    }
     if (!playerTwo) {
       toast.error("You must invite at least Player 2 to forge a pact.");
       return;
@@ -44,7 +48,7 @@ export default function BloodPactDashboard() {
 
     try {
       setIsCreating(true);
-      const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
+      const provider = new AnchorProvider(connection, anchorWallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
       let p2Key: web3.PublicKey;
@@ -62,12 +66,13 @@ export default function BloodPactDashboard() {
       const lamports = new BN(Math.floor(stakeAmount * web3.LAMPORTS_PER_SOL));
       const daysU8 = days;
 
+      // 🚨 USING V2 MATH TO MATCH YOUR DEVNET DEPLOYMENT 🚨
       const [squadVaultPDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("squad_v2"), publicKey.toBuffer()],
+        [Buffer.from("squad_v2"), publicKey.toBuffer(), p2Key.toBuffer()],
         PROGRAM_ID
       );
 
-      // 🚨 MANUALLY SIMULATE TRANSACTION BEFORE PHANTOM 🚨
+      // Simulation Bypass to catch real Rust errors
       const txInstruction = await program.methods
         .initializeSquad(lamports, daysU8, p2Key, p3Key)
         .accounts({
@@ -78,8 +83,7 @@ export default function BloodPactDashboard() {
         .instruction();
 
       const transaction = new web3.Transaction().add(txInstruction);
-      const latestBlockhash = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = latestBlockhash.blockhash;
+      transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
       transaction.feePayer = publicKey;
 
       const simulation = await connection.simulateTransaction(transaction);
@@ -91,6 +95,7 @@ export default function BloodPactDashboard() {
         return;
       }
 
+      // 🚨 SAFE ANCHOR RPC EXECUTOR 🚨
       const tx = await program.methods
         .initializeSquad(lamports, daysU8, p2Key, p3Key)
         .accounts({
@@ -116,12 +121,15 @@ export default function BloodPactDashboard() {
   // 2. HONOR THE INVITE (MENU MANUAL ENTRY)
   // ==========================================
   const handleJoinSquad = async () => {
-    if (!publicKey || !signTransaction) return;
+    if (!connected || !publicKey || !anchorWallet) {
+      toast.error("Wallet disconnected. Please reconnect.");
+      return;
+    }
     if (!leaderAddress) return;
 
     try {
       setIsJoining(true);
-      const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
+      const provider = new AnchorProvider(connection, anchorWallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
       let leaderKey: web3.PublicKey;
@@ -133,11 +141,18 @@ export default function BloodPactDashboard() {
         return;
       }
 
-      const [squadVaultPDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("squad_v2"), leaderKey.toBuffer()],
-        PROGRAM_ID
-      );
+      const allVaults = await program.account.squadVaultV2.all();
+      const vault = allVaults.find((v : any) => v.account.playerOne.toBase58() === leaderKey.toBase58());
 
+      if (!vault) {
+        toast.error("BLOCKCHAIN ERROR: No vault found for this Leader's address.");
+        setIsJoining(false);
+        return;
+      }
+
+      const squadVaultPDA = vault.publicKey;
+
+      // 🚨 SAFE ANCHOR RPC EXECUTOR 🚨
       await program.methods
         .joinSquad()
         .accounts({
@@ -145,7 +160,7 @@ export default function BloodPactDashboard() {
           squadVault: squadVaultPDA,
           systemProgram: web3.SystemProgram.programId,
         } as any)
-        .rpc(); 
+        .rpc();
 
       toast.success("You have honored the invite. SOL locked.");
       setView('MENU');
@@ -161,16 +176,19 @@ export default function BloodPactDashboard() {
   // 2.5 DIRECT STAKE (WHEN ALREADY IN LOBBY)
   // ==========================================
   const handleStakeToJoin = async () => {
-    if (!publicKey || !signTransaction || !squadPda) return;
+    if (!connected || !publicKey || !anchorWallet || !squadPda) {
+      toast.error("Wallet disconnected. Please reconnect.");
+      return;
+    }
 
     try {
       setIsJoining(true);
-      const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
+      const provider = new AnchorProvider(connection, anchorWallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
       const squadVaultPDA = new web3.PublicKey(squadPda);
 
-      // Simulation Bypass to catch errors safely
+      // Simulation check
       const txInstruction = await program.methods
         .joinSquad()
         .accounts({
@@ -181,8 +199,7 @@ export default function BloodPactDashboard() {
         .instruction();
 
       const transaction = new web3.Transaction().add(txInstruction);
-      const latestBlockhash = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = latestBlockhash.blockhash;
+      transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
       transaction.feePayer = publicKey;
 
       const simulation = await connection.simulateTransaction(transaction);
@@ -193,6 +210,7 @@ export default function BloodPactDashboard() {
         return;
       }
 
+      // 🚨 SAFE ANCHOR RPC EXECUTOR 🚨
       await program.methods
         .joinSquad()
         .accounts({
@@ -215,7 +233,11 @@ export default function BloodPactDashboard() {
   // 3. VERIFY SQUAD WORKOUT
   // ==========================================
   const handleVerifySquad = async () => {
-    if (!publicKey || !signTransaction) return;
+    if (!connected || !publicKey || !anchorWallet) {
+      toast.error("Wallet disconnected. Please reconnect.");
+      return;
+    }
+
     if (!gymLocation) {
       toast.error("Please calibrate your gym location first!");
       return;
@@ -235,9 +257,10 @@ export default function BloodPactDashboard() {
         }
 
         try {
-          const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
+          const provider = new AnchorProvider(connection, anchorWallet as any, { preflightCommitment: 'confirmed' });
           const program = new Program(idl as any, PROGRAM_ID, provider);
 
+          // 🚨 SAFE ANCHOR RPC EXECUTOR 🚨
           await program.methods
             .verifySquadWorkout()
             .accounts({
@@ -277,21 +300,37 @@ export default function BloodPactDashboard() {
     const isP2Empty = squadData.playerTwo.toBase58() === web3.SystemProgram.programId.toBase58();
     const isP3Empty = squadData.playerThree.toBase58() === web3.SystemProgram.programId.toBase58();
     
-    const myAddress = publicKey?.toBase58();
-    let myLastCheckIn = 0;
-    const amIPlayerTwo = myAddress === squadData.playerTwo.toBase58();
-    const amIPlayerThree = myAddress === squadData.playerThree.toBase58();
+    const myAddress = publicKey?.toBase58().trim() || "";
+    const onChainP2 = squadData.playerTwo.toBase58().trim();
+    const onChainP3 = squadData.playerThree.toBase58().trim();
+
+    const amIPlayerTwo = myAddress === onChainP2;
+    const amIPlayerThree = myAddress === onChainP3;
     
-    // Check if the current user needs to stake
     const doINeedToStake = (amIPlayerTwo && !squadData.p2Staked) || (amIPlayerThree && !squadData.p3Staked);
 
-    if (myAddress === squadData.playerOne.toBase58()) myLastCheckIn = Number(squadData.p1LastCheckIn.toString());
+    console.log("--- UI TRUTH SERUM DEBUGGER ---");
+    console.log("React Connected Wallet:", myAddress);
+    console.log("Blockchain Player 2:", onChainP2);
+    console.log("Is my wallet exactly Player 2?", amIPlayerTwo);
+    console.log("Do I need to lock SOL?", doINeedToStake);
+
+    let myLastCheckIn = 0;
+    if (myAddress === squadData.playerOne.toBase58().trim()) myLastCheckIn = Number(squadData.p1LastCheckIn.toString());
     else if (amIPlayerTwo) myLastCheckIn = Number(squadData.p2LastCheckIn.toString());
     else if (amIPlayerThree) myLastCheckIn = Number(squadData.p3LastCheckIn.toString());
 
     return (
       <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-10">
         <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
+        
+        {/* --- DEGBUG PANEL FOR TESTING --- */}
+        <div className="bg-blue-900/20 p-2 border border-blue-500 text-[10px] font-mono text-blue-200 mb-2 relative z-10 break-all">
+          <p className="font-bold text-blue-400">🔥 TRUTH SERUM DEBUGGER 🔥</p>
+          <p>My Wallet: {myAddress}</p>
+          <p>Player 2 (On-Chain): {onChainP2}</p>
+          <p className="mt-1 text-yellow-400">Does My Wallet === Player 2? {amIPlayerTwo ? "YES!" : "NO!"}</p>
+        </div>
         
         <div className="flex justify-between items-start border-b-2 border-zinc-900 pb-4 relative z-10">
           <div>
@@ -379,7 +418,6 @@ export default function BloodPactDashboard() {
           )}
         </div>
 
-        {/* --- PENDING LOBBY UX: PLAYER WAITING vs PLAYER NEEDS TO STAKE --- */}
         {!squadData.protocolActive && (
           <div className="mt-4 relative z-10">
             {doINeedToStake ? (
@@ -398,7 +436,6 @@ export default function BloodPactDashboard() {
           </div>
         )}
 
-        {/* --- ACTIVE LOBBY UX: VERIFY WORKOUT BUTTON --- */}
         {squadData.protocolActive && (
           <div className="flex flex-col gap-2 mt-4 relative z-10">
             {!gymLocation ? (
