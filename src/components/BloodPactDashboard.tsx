@@ -138,7 +138,7 @@ export default function BloodPactDashboard() {
         PROGRAM_ID
       );
 
-      const tx = await program.methods
+      await program.methods
         .joinSquad()
         .accounts({
           player: publicKey,
@@ -193,7 +193,7 @@ export default function BloodPactDashboard() {
         return;
       }
 
-      const tx = await program.methods
+      await program.methods
         .joinSquad()
         .accounts({
           player: publicKey,
@@ -261,6 +261,7 @@ export default function BloodPactDashboard() {
       },
       (error) => {
         setIsVerifying(false);
+        console.error("GPS Error:", error);
         toast.error("ORACLE FAILURE: GPS signal lost or blocked.");
       },
       { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
