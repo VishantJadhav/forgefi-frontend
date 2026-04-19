@@ -16,7 +16,7 @@ export default function BloodPactDashboard() {
   const { connection } = useConnection();
   const wallet = useWallet();
   const anchorWallet = useAnchorWallet(); 
-  const { publicKey, connected } = wallet; 
+  const { publicKey, connected, sendTransaction } = wallet; 
 
   const { squadData, squadPda, isLoading: isSquadLoading } = useSquadState();
   const { gymLocation, calibrateGymLocation } = useGeolocation(publicKey?.toBase58());
@@ -66,13 +66,11 @@ export default function BloodPactDashboard() {
       const lamports = new BN(Math.floor(stakeAmount * web3.LAMPORTS_PER_SOL));
       const daysU8 = days;
 
-      // 🚨 USING V2 MATH TO MATCH YOUR DEVNET DEPLOYMENT 🚨
       const [squadVaultPDA] = web3.PublicKey.findProgramAddressSync(
         [Buffer.from("squad_v2"), publicKey.toBuffer(), p2Key.toBuffer()],
         PROGRAM_ID
       );
 
-      // Simulation Bypass to catch real Rust errors
       const txInstruction = await program.methods
         .initializeSquad(lamports, daysU8, p2Key, p3Key)
         .accounts({
@@ -89,28 +87,18 @@ export default function BloodPactDashboard() {
       const simulation = await connection.simulateTransaction(transaction);
       
       if (simulation.value.err) {
-        console.error("🔥 RUST CONTRACT REJECTED IT 🔥", simulation.value.logs);
-        toast.error("Simulation failed! Check F12 console.");
+        toast.error("Protocol rejected the terms. Ensure you have sufficient SOL.");
         setIsCreating(false);
         return;
       }
 
-      // 🚨 SAFE ANCHOR RPC EXECUTOR 🚨
-      const tx = await program.methods
-        .initializeSquad(lamports, daysU8, p2Key, p3Key)
-        .accounts({
-          playerOne: publicKey,
-          squadVault: squadVaultPDA,
-          systemProgram: web3.SystemProgram.programId,
-        } as any)
-        .rpc();
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction(signature, 'confirmed');
 
-      console.log(`Blood Pact Forged. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
       toast.success("Pact forged! Send your wallet address to your squad to invite them.");
       setView('MENU');
 
     } catch (error) {
-      console.error("Failed to create squad:", error);
       toast.error("Transaction failed or rejected by lifter.");
     } finally {
       setIsCreating(false);
@@ -152,21 +140,29 @@ export default function BloodPactDashboard() {
 
       const squadVaultPDA = vault.publicKey;
 
-      // 🚨 SAFE ANCHOR RPC EXECUTOR 🚨
-      await program.methods
+      const txInstruction = await program.methods
         .joinSquad()
         .accounts({
           player: publicKey,
           squadVault: squadVaultPDA,
           systemProgram: web3.SystemProgram.programId,
         } as any)
-        .rpc();
+        .instruction();
+
+      const transaction = new web3.Transaction().add(txInstruction);
+      
+      // 🚨 THE MISSING LINES: Adding Blockhash and Fee Payer 🚨
+      transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+      transaction.feePayer = publicKey;
+
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction(signature, 'confirmed');
 
       toast.success("You have honored the invite. SOL locked.");
       setView('MENU');
     } catch (error: any) {
       console.error("Failed to join squad:", error);
-      toast.error("Transaction failed. Check console.");
+      toast.error("Transaction failed or rejected.");
     } finally {
       setIsJoining(false);
     }
@@ -188,7 +184,6 @@ export default function BloodPactDashboard() {
 
       const squadVaultPDA = new web3.PublicKey(squadPda);
 
-      // Simulation check
       const txInstruction = await program.methods
         .joinSquad()
         .accounts({
@@ -204,25 +199,16 @@ export default function BloodPactDashboard() {
 
       const simulation = await connection.simulateTransaction(transaction);
       if (simulation.value.err) {
-        console.error("🔥 JOIN REJECTED 🔥", simulation.value.logs);
-        toast.error("Simulation failed! You might not have enough SOL.");
+        toast.error("Protocol rejected the terms. Ensure you have sufficient SOL.");
         setIsJoining(false);
         return;
       }
 
-      // 🚨 SAFE ANCHOR RPC EXECUTOR 🚨
-      await program.methods
-        .joinSquad()
-        .accounts({
-          player: publicKey,
-          squadVault: squadVaultPDA,
-          systemProgram: web3.SystemProgram.programId,
-        } as any)
-        .rpc();
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction(signature, 'confirmed');
 
       toast.success("Blood locked! You are in the Pact.");
     } catch (error) {
-      console.error("Failed to stake directly:", error);
       toast.error("Phantom rejected the transaction.");
     } finally {
       setIsJoining(false);
@@ -260,24 +246,43 @@ export default function BloodPactDashboard() {
           const provider = new AnchorProvider(connection, anchorWallet as any, { preflightCommitment: 'confirmed' });
           const program = new Program(idl as any, PROGRAM_ID, provider);
 
-          // 🚨 SAFE ANCHOR RPC EXECUTOR 🚨
-          await program.methods
+          const txInstruction = await program.methods
             .verifySquadWorkout()
             .accounts({
               player: publicKey,
               squadVault: new web3.PublicKey(squadPda),
             } as any)
-            .rpc();
+            .instruction();
+
+          const transaction = new web3.Transaction().add(txInstruction);
+          
+          // 🚨 THE MISSING LINES: Adding Blockhash and Fee Payer 🚨
+          transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+          transaction.feePayer = publicKey;
+
+          // Catch Cooldown/Deadline errors before Phantom sees them!
+          const simulation = await connection.simulateTransaction(transaction);
+          if (simulation.value.err) {
+            console.error("🔥 VERIFY REJECTED 🔥", simulation.value.logs);
+            const logStr = simulation.value.logs?.toString() || "";
+            if (logStr.includes("WorkoutTooSoon") || logStr.includes("6000")) {
+              toast.error("RECOVERY PERIOD: Iron cools in 10 seconds.");
+            } else if (logStr.includes("MissedDeadline") || logStr.includes("6003")) {
+              toast.error("GUILLOTINE: You missed your window.");
+            } else {
+              toast.error("Protocol rejected the verification.");
+            }
+            setIsVerifying(false);
+            return;
+          }
+
+          const signature = await sendTransaction(transaction, connection);
+          await connection.confirmTransaction(signature, 'confirmed');
 
           toast.success("Workout verified on-chain! Awaiting squadmates.");
         } catch (error: any) {
-          if (error.toString().includes("WorkoutTooSoon") || error.toString().includes("6000")) {
-            toast.error("RECOVERY PERIOD: Iron cools in 10 seconds.");
-          } else if (error.toString().includes("MissedDeadline") || error.toString().includes("6003")) {
-            toast.error("GUILLOTINE: You missed your window.");
-          } else {
-            toast.error("Transaction failed.");
-          }
+          console.error(error);
+          toast.error("Phantom rejected the transaction.");
         } finally {
           setIsVerifying(false);
         }
@@ -309,12 +314,6 @@ export default function BloodPactDashboard() {
     
     const doINeedToStake = (amIPlayerTwo && !squadData.p2Staked) || (amIPlayerThree && !squadData.p3Staked);
 
-    console.log("--- UI TRUTH SERUM DEBUGGER ---");
-    console.log("React Connected Wallet:", myAddress);
-    console.log("Blockchain Player 2:", onChainP2);
-    console.log("Is my wallet exactly Player 2?", amIPlayerTwo);
-    console.log("Do I need to lock SOL?", doINeedToStake);
-
     let myLastCheckIn = 0;
     if (myAddress === squadData.playerOne.toBase58().trim()) myLastCheckIn = Number(squadData.p1LastCheckIn.toString());
     else if (amIPlayerTwo) myLastCheckIn = Number(squadData.p2LastCheckIn.toString());
@@ -323,14 +322,6 @@ export default function BloodPactDashboard() {
     return (
       <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-10">
         <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
-        
-        {/* --- DEGBUG PANEL FOR TESTING --- */}
-        <div className="bg-blue-900/20 p-2 border border-blue-500 text-[10px] font-mono text-blue-200 mb-2 relative z-10 break-all">
-          <p className="font-bold text-blue-400">🔥 TRUTH SERUM DEBUGGER 🔥</p>
-          <p>My Wallet: {myAddress}</p>
-          <p>Player 2 (On-Chain): {onChainP2}</p>
-          <p className="mt-1 text-yellow-400">Does My Wallet === Player 2? {amIPlayerTwo ? "YES!" : "NO!"}</p>
-        </div>
         
         <div className="flex justify-between items-start border-b-2 border-zinc-900 pb-4 relative z-10">
           <div>
