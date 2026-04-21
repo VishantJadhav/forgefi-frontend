@@ -32,6 +32,7 @@ export default function BloodPactDashboard() {
   const [leaderAddress, setLeaderAddress] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isBurning, setIsBurning] = useState(false);
 
   // ==========================================
   // 1. FORGE THE PACT
@@ -248,6 +249,39 @@ export default function BloodPactDashboard() {
   };
 
   // ==========================================
+  // 4. BURN ZOMBIE SQUAD
+  // ==========================================
+  const handleBurnZombie = async () => {
+    if (!connected || !publicKey || !anchorWallet || !squadPda) return;
+
+    try {
+      setIsBurning(true);
+      const provider = new AnchorProvider(connection, anchorWallet as any, { preflightCommitment: 'confirmed' });
+      const program = new Program(idl as any, PROGRAM_ID, provider);
+
+      // 🚨 PURE RPC EXECUTION 🚨
+      const tx = await program.methods
+        .acknowledgeSquadFailure()
+        .accounts({
+          player: publicKey,
+          squadVault: new web3.PublicKey(squadPda),
+        } as any)
+        .rpc();
+
+      console.log(`Zombie Squad Burned. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
+      toast.success("Zombie vault burned. The slate is wiped clean.");
+      
+      // Send them back to the main menu
+      setView('MENU');
+    } catch (error) {
+      console.error("Failed to burn zombie vault:", error);
+      toast.error("Failed to acknowledge failure.");
+    } finally {
+      setIsBurning(false);
+    }
+  };
+
+  // ==========================================
   // RENDER LOBBY / DASHBOARD
   // ==========================================
   if (isSquadLoading) {
@@ -269,13 +303,16 @@ export default function BloodPactDashboard() {
             The Squad Abandoned <br/> The Iron
           </h2>
           <p className="text-red-200/70 mb-8 leading-relaxed font-mono text-xs uppercase tracking-wider relative z-10">
-            Your blood pact was completely liquidated. The Executioner claimed the remaining SOL.
+            Your blood pact was totally liquidated. Burn this dead vault and acknowledge your failure.
           </p>
           <button 
-            disabled={true}
-            className="w-full font-black uppercase tracking-widest py-5 transition-all relative z-10 bg-red-900/50 text-red-500 border border-red-800 cursor-not-allowed"
+            onClick={handleBurnZombie}
+            disabled={isBurning}
+            className={`w-full font-black uppercase tracking-widest py-5 transition-all relative z-10 ${
+              isBurning ? 'bg-red-900/50 text-red-500 border border-red-800 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-black shadow-[0_0_20px_rgba(220,38,38,0.4)] active:scale-[0.98]'
+            }`}
           >
-            Vault Burned
+            {isBurning ? 'Burning Vault...' : 'Acknowledge Failure'}
           </button>
         </div>
       );
