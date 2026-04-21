@@ -16,7 +16,7 @@ export default function BloodPactDashboard() {
   const { connection } = useConnection();
   const wallet = useWallet();
   const anchorWallet = useAnchorWallet(); 
-  const { publicKey, connected, sendTransaction } = wallet; 
+  const { publicKey, connected } = wallet; 
 
   const { squadData, squadPda, isLoading: isSquadLoading } = useSquadState();
   const { gymLocation, calibrateGymLocation } = useGeolocation(publicKey?.toBase58());
@@ -71,34 +71,22 @@ export default function BloodPactDashboard() {
         PROGRAM_ID
       );
 
-      const txInstruction = await program.methods
+      // 🚨 PURE RPC EXECUTION 🚨
+      const tx = await program.methods
         .initializeSquad(lamports, daysU8, p2Key, p3Key)
         .accounts({
           playerOne: publicKey,
           squadVault: squadVaultPDA,
           systemProgram: web3.SystemProgram.programId,
         } as any)
-        .instruction();
+        .rpc();
 
-      const transaction = new web3.Transaction().add(txInstruction);
-      transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-      transaction.feePayer = publicKey;
-
-      const simulation = await connection.simulateTransaction(transaction);
-      
-      if (simulation.value.err) {
-        toast.error("Protocol rejected the terms. Ensure you have sufficient SOL.");
-        setIsCreating(false);
-        return;
-      }
-
-      const signature = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction(signature, 'confirmed');
-
+      console.log(`Blood Pact Forged. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
       toast.success("Pact forged! Send your wallet address to your squad to invite them.");
       setView('MENU');
 
     } catch (error) {
+      console.error("Failed to create squad:", error);
       toast.error("Transaction failed or rejected by lifter.");
     } finally {
       setIsCreating(false);
@@ -140,29 +128,21 @@ export default function BloodPactDashboard() {
 
       const squadVaultPDA = vault.publicKey;
 
-      const txInstruction = await program.methods
+      // 🚨 PURE RPC EXECUTION 🚨
+      await program.methods
         .joinSquad()
         .accounts({
           player: publicKey,
           squadVault: squadVaultPDA,
           systemProgram: web3.SystemProgram.programId,
         } as any)
-        .instruction();
-
-      const transaction = new web3.Transaction().add(txInstruction);
-      
-      // 🚨 THE MISSING LINES: Adding Blockhash and Fee Payer 🚨
-      transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-      transaction.feePayer = publicKey;
-
-      const signature = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction(signature, 'confirmed');
+        .rpc();
 
       toast.success("You have honored the invite. SOL locked.");
       setView('MENU');
     } catch (error: any) {
       console.error("Failed to join squad:", error);
-      toast.error("Transaction failed or rejected.");
+      toast.error("Transaction failed. Check console.");
     } finally {
       setIsJoining(false);
     }
@@ -184,31 +164,19 @@ export default function BloodPactDashboard() {
 
       const squadVaultPDA = new web3.PublicKey(squadPda);
 
-      const txInstruction = await program.methods
+      // 🚨 PURE RPC EXECUTION 🚨
+      await program.methods
         .joinSquad()
         .accounts({
           player: publicKey,
           squadVault: squadVaultPDA,
           systemProgram: web3.SystemProgram.programId,
         } as any)
-        .instruction();
-
-      const transaction = new web3.Transaction().add(txInstruction);
-      transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-      transaction.feePayer = publicKey;
-
-      const simulation = await connection.simulateTransaction(transaction);
-      if (simulation.value.err) {
-        toast.error("Protocol rejected the terms. Ensure you have sufficient SOL.");
-        setIsJoining(false);
-        return;
-      }
-
-      const signature = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction(signature, 'confirmed');
+        .rpc();
 
       toast.success("Blood locked! You are in the Pact.");
     } catch (error) {
+      console.error("Failed to stake directly:", error);
       toast.error("Phantom rejected the transaction.");
     } finally {
       setIsJoining(false);
@@ -246,43 +214,26 @@ export default function BloodPactDashboard() {
           const provider = new AnchorProvider(connection, anchorWallet as any, { preflightCommitment: 'confirmed' });
           const program = new Program(idl as any, PROGRAM_ID, provider);
 
-          const txInstruction = await program.methods
+          // 🚨 PURE RPC EXECUTION 🚨
+          await program.methods
             .verifySquadWorkout()
             .accounts({
               player: publicKey,
               squadVault: new web3.PublicKey(squadPda),
             } as any)
-            .instruction();
-
-          const transaction = new web3.Transaction().add(txInstruction);
-          
-          // 🚨 THE MISSING LINES: Adding Blockhash and Fee Payer 🚨
-          transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-          transaction.feePayer = publicKey;
-
-          // Catch Cooldown/Deadline errors before Phantom sees them!
-          const simulation = await connection.simulateTransaction(transaction);
-          if (simulation.value.err) {
-            console.error("🔥 VERIFY REJECTED 🔥", simulation.value.logs);
-            const logStr = simulation.value.logs?.toString() || "";
-            if (logStr.includes("WorkoutTooSoon") || logStr.includes("6000")) {
-              toast.error("RECOVERY PERIOD: Iron cools in 10 seconds.");
-            } else if (logStr.includes("MissedDeadline") || logStr.includes("6003")) {
-              toast.error("GUILLOTINE: You missed your window.");
-            } else {
-              toast.error("Protocol rejected the verification.");
-            }
-            setIsVerifying(false);
-            return;
-          }
-
-          const signature = await sendTransaction(transaction, connection);
-          await connection.confirmTransaction(signature, 'confirmed');
+            .rpc();
 
           toast.success("Workout verified on-chain! Awaiting squadmates.");
         } catch (error: any) {
-          console.error(error);
-          toast.error("Phantom rejected the transaction.");
+          console.error("🔥 VERIFY ERROR 🔥", error);
+          const errString = error.toString();
+          if (errString.includes("WorkoutTooSoon") || errString.includes("6000")) {
+            toast.error("RECOVERY PERIOD: Iron cools in 10 seconds.");
+          } else if (errString.includes("MissedDeadline") || errString.includes("6003")) {
+            toast.error("GUILLOTINE: You missed your window.");
+          } else {
+            toast.error("Phantom rejected the transaction.");
+          }
         } finally {
           setIsVerifying(false);
         }
@@ -296,12 +247,62 @@ export default function BloodPactDashboard() {
     );
   };
 
-  // --- RENDER 0: THE ACTIVE LOBBY / SQUAD VIEW ---
+  // ==========================================
+  // RENDER LOBBY / DASHBOARD
+  // ==========================================
   if (isSquadLoading) {
     return <div className="text-zinc-500 font-mono text-center p-8 uppercase tracking-widest animate-pulse">Scanning Blockchain...</div>;
   }
 
   if (squadData) {
+    // --- 1. THE ZOMBIE STATE ---
+    if (squadData.missedDays === 999) {
+      return (
+        <div className="border-2 border-red-900 bg-red-950/40 backdrop-blur-md p-8 shadow-[0_0_40px_rgba(220,38,38,0.3)] flex flex-col items-center text-center relative overflow-hidden z-10">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/20 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
+          <div className="w-16 h-16 bg-red-900/40 rounded-full flex items-center justify-center mb-6 border border-red-600 relative z-10 animate-pulse">
+            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-black text-red-500 uppercase tracking-widest mb-4 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)] relative z-10">
+            The Squad Abandoned <br/> The Iron
+          </h2>
+          <p className="text-red-200/70 mb-8 leading-relaxed font-mono text-xs uppercase tracking-wider relative z-10">
+            Your blood pact was completely liquidated. The Executioner claimed the remaining SOL.
+          </p>
+          <button 
+            disabled={true}
+            className="w-full font-black uppercase tracking-widest py-5 transition-all relative z-10 bg-red-900/50 text-red-500 border border-red-800 cursor-not-allowed"
+          >
+            Vault Burned
+          </button>
+        </div>
+      );
+    }
+
+    // --- 2. THE VICTORY STATE ---
+    if (squadData.daysCompleted >= squadData.daysCommitted) {
+      return (
+        <div className="border-2 border-green-900 bg-green-950/40 backdrop-blur-md p-8 shadow-[0_0_40px_rgba(34,197,94,0.3)] flex flex-col items-center text-center relative overflow-hidden z-10">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-green-600/20 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
+          <h2 className="text-3xl font-black text-green-500 uppercase tracking-widest mb-4 drop-shadow-[0_0_10px_rgba(34,197,94,0.8)] relative z-10">
+            Pact Fulfilled
+          </h2>
+          <p className="text-green-200/70 mb-8 leading-relaxed font-mono text-xs uppercase tracking-wider relative z-10">
+            Your squad survived the gauntlet. The Iron Matrix is complete.
+          </p>
+          <button 
+            disabled={true}
+            className="w-full font-black uppercase tracking-widest py-5 transition-all relative z-10 bg-green-900/50 text-green-500 border border-green-800 cursor-not-allowed"
+          >
+            Protocol Complete
+          </button>
+        </div>
+      );
+    }
+
+    // --- 3. THE ACTIVE LOBBY ---
     const isP2Empty = squadData.playerTwo.toBase58() === web3.SystemProgram.programId.toBase58();
     const isP3Empty = squadData.playerThree.toBase58() === web3.SystemProgram.programId.toBase58();
     
@@ -459,6 +460,9 @@ export default function BloodPactDashboard() {
     );
   }
 
+  // ==========================================
+  // RENDER MENU (NOT IN LOBBY)
+  // ==========================================
   if (view === 'MENU') {
     return (
       <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-10 text-center">
@@ -481,6 +485,9 @@ export default function BloodPactDashboard() {
     );
   }
 
+  // ==========================================
+  // RENDER CREATE
+  // ==========================================
   if (view === 'CREATE') {
     return (
       <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden z-10">
@@ -532,6 +539,9 @@ export default function BloodPactDashboard() {
     );
   }
 
+  // ==========================================
+  // RENDER JOIN
+  // ==========================================
   if (view === 'JOIN') {
     return (
       <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden z-10">
