@@ -26,6 +26,8 @@ export default function LoneWolfDashboard() {
   const [isStaking, setIsStaking] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isBurning, setIsBurning] = useState(false);
+
+  //Added to resolve user's SOL after designated days are met 
   const [isResolving, setIsResolving] = useState(false);
 
   // ==========================================

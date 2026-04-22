@@ -34,6 +34,9 @@ export default function BloodPactDashboard() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isBurning, setIsBurning] = useState(false);
 
+  // Added to resolve user's squad vault SOL 
+  const [isResolving, setIsResolving] = useState(false);
+
   // ==========================================
   // 1. FORGE THE PACT
   // ==========================================
@@ -232,6 +235,8 @@ export default function BloodPactDashboard() {
             toast.error("RECOVERY PERIOD: Iron cools in 10 seconds.");
           } else if (errString.includes("MissedDeadline") || errString.includes("6003")) {
             toast.error("GUILLOTINE: You missed your window.");
+          } else if (errString.includes("ProtocolComplete")) {
+             toast.error("Protocol is already finished!");
           } else {
             toast.error("Phantom rejected the transaction.");
           }
@@ -282,6 +287,39 @@ export default function BloodPactDashboard() {
   };
 
   // ==========================================
+  // 5. CLAIM VICTORY (RESOLVE SQUAD PACT)
+  // ==========================================
+  const handleResolveSquad = async () => {
+    if (!connected || !publicKey || !anchorWallet || !squadPda) return;
+
+    try {
+      setIsResolving(true);
+      const provider = new AnchorProvider(connection, anchorWallet as any, { preflightCommitment: 'confirmed' });
+      const program = new Program(idl as any, PROGRAM_ID, provider);
+
+      // 🚨 PURE RPC EXECUTION 🚨
+      const tx = await program.methods
+        .resolveSquadStake()
+        .accounts({
+          player: publicKey,
+          squadVault: new web3.PublicKey(squadPda),
+        } as any)
+        .rpc();
+
+      console.log(`Squad Pact Resolved. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
+      toast.success("Blood Pact resolved! Surviving SOL returned and vault burned.");
+      
+      // Send them back to the main menu
+      setView('MENU');
+    } catch (error) {
+      console.error("Failed to resolve squad:", error);
+      toast.error("Failed to claim remaining stake.");
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  // ==========================================
   // RENDER LOBBY / DASHBOARD
   // ==========================================
   if (isSquadLoading) {
@@ -318,22 +356,40 @@ export default function BloodPactDashboard() {
       );
     }
 
-    // --- 2. THE VICTORY STATE ---
-    if (squadData.daysCompleted >= squadData.daysCommitted) {
+    // --- 2. THE CONCLUSION STATE (Finished Protocol) ---
+    const isFinished = squadData.daysCompleted + squadData.missedDays >= squadData.daysCommitted;
+
+    if (isFinished && squadData.missedDays !== 999) {
+      // Calculate remaining SOL from the total vault pool
+      const totalVault = Number(squadData.totalVaultBalance.toString()) / web3.LAMPORTS_PER_SOL;
+      const remainingSol = totalVault - (totalVault * 0.1 * squadData.missedDays);
+
       return (
         <div className="border-2 border-green-900 bg-green-950/40 backdrop-blur-md p-8 shadow-[0_0_40px_rgba(34,197,94,0.3)] flex flex-col items-center text-center relative overflow-hidden z-10">
           <div className="absolute top-0 right-0 w-32 h-32 bg-green-600/20 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
-          <h2 className="text-3xl font-black text-green-500 uppercase tracking-widest mb-4 drop-shadow-[0_0_10px_rgba(34,197,94,0.8)] relative z-10">
+          <h2 className="text-3xl font-black text-green-500 uppercase tracking-widest mb-2 drop-shadow-[0_0_10px_rgba(34,197,94,0.8)] relative z-10">
             Pact Fulfilled
           </h2>
-          <p className="text-green-200/70 mb-8 leading-relaxed font-mono text-xs uppercase tracking-wider relative z-10">
-            Your squad survived the gauntlet. The Iron Matrix is complete.
+          <p className="text-green-200/70 mb-6 leading-relaxed font-mono text-xs uppercase tracking-wider relative z-10">
+            Your squad survived the gauntlet.<br/>
+            The Executioner claimed {(squadData.missedDays * 10)}% of the blood pool.
           </p>
+
+          <div className="border border-green-800 bg-black/50 w-full p-4 mb-6 relative z-10">
+            <span className="text-xs text-green-600 uppercase font-bold tracking-widest block mb-1">Surviving Squad Pool</span>
+            <span className="text-3xl font-black text-white font-mono">
+              {Math.max(0, remainingSol).toFixed(2)} SOL
+            </span>
+          </div>
+
           <button 
-            disabled={true}
-            className="w-full font-black uppercase tracking-widest py-5 transition-all relative z-10 bg-green-900/50 text-green-500 border border-green-800 cursor-not-allowed"
+            onClick={handleResolveSquad}
+            disabled={isResolving}
+            className={`w-full font-black uppercase tracking-widest py-5 transition-all relative z-10 ${
+              isResolving ? 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)] active:scale-[0.98]'
+            }`}
           >
-            Protocol Complete
+            {isResolving ? 'Burning Vault...' : 'Claim Surviving SOL & Burn Vault'}
           </button>
         </div>
       );
