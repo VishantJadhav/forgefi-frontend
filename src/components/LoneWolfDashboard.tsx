@@ -134,6 +134,7 @@ export default function LoneWolfDashboard() {
       },
       (error) => {
         setIsVerifying(false);
+        console.error("GPS Error:", error); // <-- We are now 'reading' the error!
         toast.error("ORACLE FAILURE: GPS signal lost or blocked.");
       },
       { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
