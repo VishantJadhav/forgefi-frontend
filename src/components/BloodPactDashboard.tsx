@@ -290,30 +290,32 @@ export default function BloodPactDashboard() {
   // 5. CLAIM VICTORY (RESOLVE SQUAD PACT)
   // ==========================================
   const handleResolveSquad = async () => {
-    if (!connected || !publicKey || !anchorWallet || !squadPda) return;
+    if (!connected || !publicKey || !anchorWallet || !squadPda || !squadData) return;
 
     try {
       setIsResolving(true);
       const provider = new AnchorProvider(connection, anchorWallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
-      // 🚨 PURE RPC EXECUTION 🚨
+      // 🚨 UPDATED: Passing all squad members so the smart contract can pay them 🚨
       const tx = await program.methods
         .resolveSquadStake()
         .accounts({
           player: publicKey,
+          playerOne: squadData.playerOne,
+          playerTwo: squadData.playerTwo,
+          playerThree: squadData.playerThree, // If no P3, the data naturally holds SystemProgram.programId
           squadVault: new web3.PublicKey(squadPda),
         } as any)
         .rpc();
 
       console.log(`Squad Pact Resolved. Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
-      toast.success("Blood Pact resolved! Surviving SOL returned and vault burned.");
+      toast.success("Blood Pact resolved! Surviving SOL distributed equally and vault burned.");
       
-      // Send them back to the main menu
       setView('MENU');
     } catch (error) {
       console.error("Failed to resolve squad:", error);
-      toast.error("Failed to claim remaining stake.");
+      toast.error("Failed to distribute remaining stake.");
     } finally {
       setIsResolving(false);
     }
