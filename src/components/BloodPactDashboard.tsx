@@ -297,14 +297,17 @@ export default function BloodPactDashboard() {
       const provider = new AnchorProvider(connection, anchorWallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
-      // 🚨 UPDATED: Passing all squad members so the smart contract can pay them 🚨
+      // 🚨 THE FIX: Determine if P3 is empty
+      const isP3Empty = squadData.playerThree.toBase58() === web3.SystemProgram.programId.toBase58();
+
       const tx = await program.methods
         .resolveSquadStake()
         .accounts({
           player: publicKey,
           playerOne: squadData.playerOne,
           playerTwo: squadData.playerTwo,
-          playerThree: squadData.playerThree, // If no P3, the data naturally holds SystemProgram.programId
+          // 🚨 If Duo, pass 'publicKey' to satisfy the mut constraint without crashing!
+          playerThree: isP3Empty ? publicKey : squadData.playerThree, 
           squadVault: new web3.PublicKey(squadPda),
         } as any)
         .rpc();
