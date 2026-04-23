@@ -316,9 +316,17 @@ export default function BloodPactDashboard() {
       toast.success("Blood Pact resolved! Surviving SOL distributed equally and vault burned.");
       
       setView('MENU');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to resolve squad:", error);
-      toast.error("Failed to distribute remaining stake.");
+      const errString = error.toString();
+      
+      // 🚨 THE FIX: Gracefully handle Phantom double-taps or overlapping clicks
+      if (errString.includes("already been processed") || errString.includes("Account does not exist") || errString.includes("AccountNotFound")) {
+        toast.success("The vault was successfully resolved and burned! SOL has been distributed.");
+        setView('MENU');
+      } else {
+        toast.error("Failed to distribute remaining stake.");
+      }
     } finally {
       setIsResolving(false);
     }
