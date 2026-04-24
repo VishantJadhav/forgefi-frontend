@@ -320,7 +320,7 @@ export default function BloodPactDashboard() {
       console.error("Failed to resolve squad:", error);
       const errString = error.toString();
       
-      // 🚨 THE FIX: Gracefully handle Phantom double-taps or overlapping clicks
+      // 🚨 THE FIX: Handle Phantom double-taps or overlapping clicks
       if (errString.includes("already been processed") || errString.includes("Account does not exist") || errString.includes("AccountNotFound")) {
         toast.success("The vault was successfully resolved and burned! SOL has been distributed.");
         setView('MENU');
