@@ -13,6 +13,8 @@ import idl from '../idl/idl.json';
 import { useGeolocation, ALLOWED_DISTANCE_METERS, getDistanceInMeters } from '../hooks/useGeolocation';
 import { useVaultState, PROGRAM_ID } from '../hooks/useVaultState';
 
+const TREASURY_WALLET = new web3.PublicKey("HrAkqgXZA1fkwoJ6tdDcsu84R67yR7KCpB8NUR6oZ5NC");
+
 export default function LoneWolfDashboard() {
   const { connection } = useConnection();
   const wallet = useWallet();
@@ -29,6 +31,9 @@ export default function LoneWolfDashboard() {
 
   //Added to resolve user's SOL after designated days are met 
   const [isResolving, setIsResolving] = useState(false);
+
+  //Added for one day rest
+  const [isResting, setIsResting] = useState(false);
 
   // ==========================================
   // 1. FORGE THE PACT (STAKE)
@@ -214,6 +219,47 @@ export default function LoneWolfDashboard() {
   };
 
   // ==========================================
+  // DEPLOY TACTICAL REST (Buy 24 Hours)
+  // ==========================================
+  const handleTacticalRest = async () => {
+    if (!connected || !publicKey || !activeStake) return;
+
+    try {
+      setIsResting(true);
+      const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
+      const program = new Program(idl as any, PROGRAM_ID, provider);
+
+      const [stakePDA] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("stake"), publicKey.toBuffer()],
+        PROGRAM_ID
+      );
+
+      await program.methods
+        .useTacticalRest()
+        .accounts({
+          user: publicKey,
+          userStake: stakePDA,
+          treasury: TREASURY_WALLET,
+          systemProgram: web3.SystemProgram.programId,
+        } as any)
+        .rpc();
+
+      toast.success("Tactical Rest deployed. You bought 24 hours of mercy.");
+      fetchStakeData(); 
+    } catch (error: any) {
+      console.error("Tactical Rest failed:", error);
+      const errString = error.toString();
+      if (errString.includes("RestAlreadyUsed")) {
+        toast.error("You have already used your Tactical Rest. No mercy.");
+      } else {
+        toast.error("Failed to deploy Tactical Rest.");
+      }
+    } finally {
+      setIsResting(false);
+    }
+  };
+
+  // ==========================================
   // RENDER DYNAMIC UI FOR LONE WOLF
   // ==========================================
   if (isChecking) {
@@ -355,6 +401,25 @@ export default function LoneWolfDashboard() {
               </button>
             </div>
           )}
+
+          {/* 🚨 NEW: TACTICAL REST BUTTON 🚨 */}
+          {!activeStake.tacticalRestUsed && (activeStake.daysCompleted + activeStake.missedDays < activeStake.daysCommitted) && (
+            <button
+              onClick={handleTacticalRest}
+              disabled={isResting}
+              className="w-full border border-orange-500/50 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 font-bold py-3 px-4 rounded transition-all duration-200 uppercase tracking-widest disabled:opacity-50 text-xs mt-2 mb-2"
+            >
+              {isResting ? "Deploying..." : "Deploy Tactical Rest (0.01 SOL)"}
+            </button>
+          )}
+
+          {activeStake.tacticalRestUsed && (
+             <div className="w-full text-center text-[10px] text-red-500/70 uppercase tracking-widest border border-red-500/20 p-2 rounded bg-black/40 mt-2 mb-2">
+              Tactical Rest Depleted
+            </div>
+          )}
+          {/* 🚨 END TACTICAL REST UI 🚨 */}
+
           <button 
             onClick={handleVerify}
             disabled={isVerifying || !gymLocation}
