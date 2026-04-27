@@ -50,7 +50,7 @@ export default function LoneWolfDashboard() {
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
       const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake"), publicKey.toBuffer()],
+        [Buffer.from("stake_v2"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
@@ -109,7 +109,7 @@ export default function LoneWolfDashboard() {
 
           // 🚨 FIX: Derive the PDA mathematically instead of relying on state
           const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-            [Buffer.from("stake"), publicKey.toBuffer()],
+            [Buffer.from("stake_v2"), publicKey.toBuffer()],
             PROGRAM_ID
           );
 
@@ -161,7 +161,7 @@ export default function LoneWolfDashboard() {
 
       // 🚨 FIX: Derive the PDA
       const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake"), publicKey.toBuffer()],
+        [Buffer.from("stake_v2"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
@@ -196,7 +196,7 @@ export default function LoneWolfDashboard() {
 
       // 🚨 FIX: Derive the PDA
       const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake"), publicKey.toBuffer()],
+        [Buffer.from("stake_v2"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
@@ -230,7 +230,7 @@ export default function LoneWolfDashboard() {
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
       const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake"), publicKey.toBuffer()],
+        [Buffer.from("stake_v2"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
