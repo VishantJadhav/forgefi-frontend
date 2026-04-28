@@ -12,6 +12,8 @@ import { PROGRAM_ID } from '../hooks/useVaultState';
 import { useSquadState } from '../hooks/useSquadState'; 
 import { useGeolocation, ALLOWED_DISTANCE_METERS, getDistanceInMeters } from '../hooks/useGeolocation';
 
+const TREASURY_WALLET = new web3.PublicKey("HrAkqgXZA1fkwoJ6tdDcsu84R67yR7KCpB8NUR6oZ5NC");
+
 export default function BloodPactDashboard() {
   const { connection } = useConnection();
   const wallet = useWallet();
@@ -36,6 +38,8 @@ export default function BloodPactDashboard() {
 
   // Added to resolve user's squad vault SOL 
   const [isResolving, setIsResolving] = useState(false);
+
+  const [isResting, setIsResting] = useState(false);
 
   // ==========================================
   // 1. FORGE THE PACT
@@ -333,6 +337,47 @@ export default function BloodPactDashboard() {
   };
 
   // ==========================================
+  // DEPLOY SQUAD TACTICAL REST (The Hero Play)
+  // ==========================================
+  const handleSquadTacticalRest = async () => {
+    // 🚨 Using your exact variable names: squadData and squadPda
+    if (!connected || !publicKey || !anchorWallet || !squadData || !squadPda) return;
+
+    try {
+      setIsResting(true);
+      const provider = new AnchorProvider(connection, anchorWallet as any, { preflightCommitment: 'confirmed' });
+      const program = new Program(idl as any, PROGRAM_ID, provider);
+
+      await program.methods
+        .useSquadTacticalRest()
+        .accounts({
+          caller: publicKey,
+          squadVault: new web3.PublicKey(squadPda), // Using your existing PDA!
+          treasury: TREASURY_WALLET,
+          systemProgram: web3.SystemProgram.programId,
+        } as any)
+        .rpc();
+
+      toast.success("Hero Play activated. Your squad has been granted mercy.");
+      
+      // NOTE: If you want the UI to update instantly, you can either trigger a page reload 
+      // or call whatever refetch function your useSquadState hook provides.
+      setTimeout(() => window.location.reload(), 2000); 
+
+    } catch (error: any) {
+      console.error("Squad Tactical Rest failed:", error);
+      const errString = error.toString();
+      if (errString.includes("RestAlreadyUsed")) {
+        toast.error("Your squad has already used its lifeline. No mercy.");
+      } else {
+        toast.error("Failed to deploy Squad Tactical Rest.");
+      }
+    } finally {
+      setIsResting(false);
+    }
+  };
+
+  // ==========================================
   // RENDER LOBBY / DASHBOARD
   // ==========================================
   if (isSquadLoading) {
@@ -551,6 +596,27 @@ export default function BloodPactDashboard() {
                 </button>
               </div>
             )}
+
+            {/* 🚨 NEW: THE HERO PLAY BUTTON 🚨 */}
+          {squadData.protocolActive && 
+           !squadData.tacticalRestUsed && 
+           (squadData.daysCompleted + (squadData.missedDays || 0) < squadData.daysCommitted) && (
+            <button
+              onClick={handleSquadTacticalRest}
+              disabled={isResting}
+              className="w-full border border-orange-500/50 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 font-bold py-3 px-4 rounded transition-all duration-200 uppercase tracking-widest disabled:opacity-50 text-xs mt-4 mb-2 shadow-[0_0_10px_rgba(249,115,22,0.1)]"
+            >
+              {isResting ? "Deploying..." : "Deploy Squad Tactical Rest (0.01 SOL)"}
+            </button>
+          )}
+
+          {squadData.tacticalRestUsed && (
+             <div className="w-full text-center text-[10px] text-red-500/70 uppercase tracking-widest border border-red-500/20 p-2 rounded bg-black/40 mt-4 mb-2">
+              Squad Lifeline Depleted
+            </div>
+          )}
+          {/* 🚨 END TACTICAL REST UI 🚨 */}
+
             <button 
               onClick={handleVerifySquad}
               disabled={isVerifying || !gymLocation}
