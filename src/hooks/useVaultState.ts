@@ -26,14 +26,16 @@ export function useVaultState() {
       const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
+      // 🚨 Upgraded to stake_v3 for the new Tactical Rest architecture
       const [userStakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake_v2"), publicKey.toBuffer()],
+        [Buffer.from("stake_v3"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
       const accountData = await program.account.userStake.fetchNullable(userStakePDA);
 
       if (accountData) {
+        // 🚨 Reverted to your exact working method! No TypeScript errors here.
         setActiveStake(accountData); 
       } else {
         setActiveStake(null); 
