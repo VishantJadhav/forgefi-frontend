@@ -7,13 +7,12 @@ import { PROGRAM_ID } from './useVaultState';
 export function useSquadState() {
   const { connection } = useConnection();
   const wallet = useWallet();
-  const anchorWallet = useAnchorWallet(); // 🚨 THE FIX 🚨
+  const anchorWallet = useAnchorWallet(); 
   const [squadData, setSquadData] = useState<any>(null);
   const [squadPda, setSquadPda] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check both standard wallet AND anchorWallet
     if (!wallet.publicKey || !anchorWallet) {
       setSquadData(null);
       setIsLoading(false);
@@ -22,11 +21,13 @@ export function useSquadState() {
 
     const fetchSquad = async () => {
       try {
-        // Use anchorWallet instead of (wallet as any)
         const provider = new AnchorProvider(connection, anchorWallet, { preflightCommitment: 'confirmed' });
         const program = new Program(idl as any, PROGRAM_ID, provider);
 
-        const allSquads = await program.account.squadVaultV2.all();
+        // This tells Anchor to completely ignore the corrupted V2 vaults and only fetch 209-byte V3 vaults.
+        const allSquads = await program.account.squadVaultV2.all([
+          { dataSize: 209 } 
+        ]);
 
         const myAddress = wallet.publicKey!.toBase58();
         const mySquad = allSquads.find((squad : any) => 
