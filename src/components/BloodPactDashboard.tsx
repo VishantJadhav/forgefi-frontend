@@ -75,7 +75,7 @@ export default function BloodPactDashboard() {
       const daysU8 = days;
 
       const [squadVaultPDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("squad_v2"), publicKey.toBuffer(), p2Key.toBuffer()],
+        [Buffer.from("squad_v3"), publicKey.toBuffer(), p2Key.toBuffer()],
         PROGRAM_ID
       );
 
