@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { Program, AnchorProvider } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
-import idl from "../idl/idl.json"; // 🚨 Ensure this path points to your actual IDL file!
+import idl from "../idl/idl.json";
 
-// The ForgeFi Gamified Ranking System
 const FORGE_RANKS = [
   { minDays: 180, title: "TREN FIEND", color: "text-green-500 drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]" },
   { minDays: 90,  title: "IRON ZEALOT", color: "text-purple-500" },
@@ -18,25 +17,29 @@ const getRank = (days: number) => {
   return FORGE_RANKS.find(rank => days >= rank.minDays) || FORGE_RANKS[5];
 };
 
-// 🚨 CRITICAL: Replace with your actual deployed Program ID
 const PROGRAM_ID = new PublicKey("AyN3aAx2VJTSxJGaR5n9Ayhpa6inCAxaSGupxbGw1Rnz"); 
+
+// 🚨 Define a standard type so both Solo and Squad vaults look the same to the UI
+interface LeaderboardEntry {
+  id: string;
+  displayAddress: string;
+  streak: number;
+  type: 'SOLO' | 'SQUAD';
+}
 
 export default function Leaderboard() {
   const { connection } = useConnection();
   const wallet = useAnchorWallet();
   
-  // State to hold the live blockchain data
-  const [leaders, setLeaders] = useState<any[]>([]);
+  const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Helper to make Public Keys look clean (e.g., 7x9A...3fB2)
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
-      // If no wallet is connected, we can't initialize the Anchor Provider easily in this setup
       if (!wallet) {
         setLoading(false);
         return;
@@ -47,17 +50,36 @@ export default function Leaderboard() {
         const provider = new AnchorProvider(connection, wallet, { preflightCommitment: "confirmed" });
         const program = new Program(idl as any, PROGRAM_ID, provider);
 
-        // 1. Put the shield up to ignore 50-byte ghost accounts
-        const allVaults = await program.account.userStake.all([
-          { dataSize: 63 }
+        // 1. Fetch Lone Wolf V3 Vaults (64 bytes)
+        const loneWolves = await program.account.userStake.all([
+          { dataSize: 64 } 
         ]);
 
-        // 2. Sort by the highest streak (daysCompleted)
-        const sortedVaults = allVaults.sort((a: any, b: any) => {
-          return b.account.daysCompleted - a.account.daysCompleted;
-        });
+        // 2. Fetch Squad V3 Vaults (219 bytes)
+        const squads = await program.account.squadVaultV2.all([
+          { dataSize: 209 }
+        ]);
 
-        // 3. Take the Top 10 Alphas
+        // 3. Standardize Lone Wolf Data
+        const formattedWolves: LeaderboardEntry[] = loneWolves.map((v: any) => ({
+          id: v.publicKey.toBase58(),
+          displayAddress: v.account.user.toBase58(),
+          streak: v.account.daysCompleted,
+          type: 'SOLO'
+        }));
+
+        // 4. Standardize Squad Data (Displaying Player 1 as the representative)
+        const formattedSquads: LeaderboardEntry[] = squads.map((v: any) => ({
+          id: v.publicKey.toBase58(),
+          displayAddress: v.account.playerOne.toBase58(),
+          streak: v.account.daysCompleted,
+          type: 'SQUAD'
+        }));
+
+        // 5. Combine, Sort by highest streak, and grab the Top 10 Alphas
+        const combined = [...formattedWolves, ...formattedSquads];
+        const sortedVaults = combined.sort((a, b) => b.streak - a.streak);
+        
         setLeaders(sortedVaults.slice(0, 10));
       } catch (error) {
         console.error("❌ Failed to load the Iron Matrix:", error);
@@ -88,7 +110,7 @@ export default function Leaderboard() {
         {/* Table Column Headers */}
         <div className="grid grid-cols-4 gap-4 p-4 border-b-2 border-zinc-800 bg-black/80 text-[10px] sm:text-xs font-black text-zinc-500 uppercase tracking-widest">
           <div className="col-span-1 text-center">Rank</div>
-          <div className="col-span-1 text-left">Lifter</div>
+          <div className="col-span-1 text-left">Lifter / Squad</div>
           <div className="col-span-1 text-center">Streak</div>
           <div className="col-span-1 text-right">Title</div>
         </div>
@@ -113,14 +135,12 @@ export default function Leaderboard() {
         )}
 
         {/* Live Data Mapping */}
-        {wallet && !loading && leaders.map((vault, index) => {
-          const streak = vault.account.daysCompleted;
-          const rankDetails = getRank(streak);
-          const walletPubkey = vault.account.user.toBase58();
+        {wallet && !loading && leaders.map((leader, index) => {
+          const rankDetails = getRank(leader.streak);
           
           return (
             <div 
-              key={walletPubkey} 
+              key={leader.id} 
               className="grid grid-cols-4 gap-4 p-4 border-b border-zinc-800/50 hover:bg-zinc-800/50 transition-colors items-center group"
             >
               {/* Position Number */}
@@ -128,14 +148,19 @@ export default function Leaderboard() {
                 #{index + 1}
               </div>
               
-              {/* Wallet Address */}
-              <div className="col-span-1 text-left font-mono text-xs sm:text-sm text-zinc-300">
-                {shortenAddress(walletPubkey)}
+              {/* Wallet Address & Type Badge */}
+              <div className="col-span-1 text-left flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                <span className="font-mono text-xs sm:text-sm text-zinc-300">
+                  {shortenAddress(leader.displayAddress)}
+                </span>
+                <span className={`text-[8px] sm:text-[10px] px-1 py-0.5 rounded uppercase font-bold tracking-widest w-fit ${leader.type === 'SQUAD' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50' : 'bg-zinc-800 text-zinc-500 border border-zinc-700'}`}>
+                  {leader.type}
+                </span>
               </div>
               
               {/* Streak Count */}
               <div className="col-span-1 text-center font-mono text-lg sm:text-xl font-bold text-white">
-                {streak} <span className="text-[10px] sm:text-xs text-zinc-600 font-sans uppercase hidden sm:inline-block ml-1">Days</span>
+                {leader.streak} <span className="text-[10px] sm:text-xs text-zinc-600 font-sans uppercase hidden sm:inline-block ml-1">Days</span>
               </div>
               
               {/* Dynamic Heavy Metal Title */}
