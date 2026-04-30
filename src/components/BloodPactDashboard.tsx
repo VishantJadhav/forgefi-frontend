@@ -367,6 +367,13 @@ export default function BloodPactDashboard() {
     } catch (error: any) {
       console.error("Squad Tactical Rest failed:", error);
       const errString = error.toString();
+      
+      // 🚨 Add this block to catch the phantom retry error
+      if (errString.includes("already been processed")) {
+        console.log("Transaction actually succeeded on the first attempt.");
+        return; 
+      }
+
       if (errString.includes("RestAlreadyUsed")) {
         toast.error("Your squad has already used its lifeline. No mercy.");
       } else {
