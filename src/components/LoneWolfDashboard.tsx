@@ -4,12 +4,10 @@ import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
 import { Buffer } from 'buffer';
 import toast from 'react-hot-toast';
 
-// Components & IDL
 import DeadlineTimer from './DeadlineTimer';
 import IronMatrix from './IronMatrix';
 import idl from '../idl/idl.json';
 
-// Custom Hooks
 import { useGeolocation, ALLOWED_DISTANCE_METERS, getDistanceInMeters } from '../hooks/useGeolocation';
 import { useVaultState, PROGRAM_ID } from '../hooks/useVaultState';
 
@@ -49,8 +47,9 @@ export default function LoneWolfDashboard() {
       const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
+      // 🚨 UPGRADED TO V4 🚨
       const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake_v2"), publicKey.toBuffer()],
+        [Buffer.from("stake_v4"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
@@ -107,9 +106,9 @@ export default function LoneWolfDashboard() {
           const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
           const program = new Program(idl as any, PROGRAM_ID, provider);
 
-          // 🚨 FIX: Derive the PDA mathematically instead of relying on state
+          // 🚨 UPGRADED TO V4 🚨
           const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-            [Buffer.from("stake_v2"), publicKey.toBuffer()],
+            [Buffer.from("stake_v4"), publicKey.toBuffer()],
             PROGRAM_ID
           );
 
@@ -141,7 +140,7 @@ export default function LoneWolfDashboard() {
       },
       (error) => {
         setIsVerifying(false);
-        console.error("GPS Error:", error); // <-- We are now 'reading' the error!
+        console.error("GPS Error:", error); 
         toast.error("ORACLE FAILURE: GPS signal lost or blocked.");
       },
       { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
@@ -159,9 +158,9 @@ export default function LoneWolfDashboard() {
       const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
-      // 🚨 FIX: Derive the PDA
+      // 🚨 UPGRADED TO V4 🚨
       const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake_v2"), publicKey.toBuffer()],
+        [Buffer.from("stake_v4"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
@@ -194,9 +193,9 @@ export default function LoneWolfDashboard() {
       const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
-      // 🚨 FIX: Derive the PDA
+      // 🚨 UPGRADED TO V4 🚨
       const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake_v2"), publicKey.toBuffer()],
+        [Buffer.from("stake_v4"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
@@ -229,8 +228,9 @@ export default function LoneWolfDashboard() {
       const provider = new AnchorProvider(connection, wallet as any, { preflightCommitment: 'confirmed' });
       const program = new Program(idl as any, PROGRAM_ID, provider);
 
+      // 🚨 UPGRADED TO V4 🚨
       const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake_v2"), publicKey.toBuffer()],
+        [Buffer.from("stake_v4"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
