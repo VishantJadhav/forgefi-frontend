@@ -24,7 +24,7 @@ export function useSquadState() {
         const provider = new AnchorProvider(connection, anchorWallet, { preflightCommitment: 'confirmed' });
         const program = new Program(idl as any, PROGRAM_ID, provider);
 
-        // This tells Anchor to completely ignore the corrupted V2 vaults and only fetch 209-byte V3 vaults.
+        // This tells Anchor to completely ignore the corrupted V1-3 vaults and only fetch 209-byte V4 vaults.
         const allSquads = await program.account.squadVaultV2.all([
           { dataSize: 209 } 
         ]);
