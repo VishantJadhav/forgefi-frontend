@@ -74,8 +74,9 @@ export default function BloodPactDashboard() {
       const lamports = new BN(Math.floor(stakeAmount * web3.LAMPORTS_PER_SOL));
       const daysU8 = days;
 
+      // 🚨 UPGRADED TO V4 🚨
       const [squadVaultPDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("squad_v3"), publicKey.toBuffer(), p2Key.toBuffer()],
+        [Buffer.from("squad_v4"), publicKey.toBuffer(), p2Key.toBuffer()],
         PROGRAM_ID
       );
 
