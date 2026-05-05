@@ -41,6 +41,18 @@ export default function BloodPactDashboard() {
 
   const [isResting, setIsResting] = useState(false);
 
+  // 🚨 TELEGRAM INTEGRATION LOGIC 🚨
+  const telegramBotUsername = "ForgeFi_Bot"; // REPLACE WITH YOUR ACTUAL BOT USERNAME
+
+  const handleEnableNotifications = () => {
+    if (!publicKey) {
+      toast.error("Connect your wallet first to link Telegram.");
+      return;
+    }
+    const telegramUrl = `https://t.me/${telegramBotUsername}?start=${publicKey.toBase58()}`;
+    window.open(telegramUrl, "_blank");
+  };
+
   // ==========================================
   // 1. FORGE THE PACT
   // ==========================================
@@ -636,6 +648,26 @@ export default function BloodPactDashboard() {
             </button>
           </div>
         )}
+
+        {/* 🚨 TELEGRAM LINK - ONLY SHOWN AFTER THEY HAVE A VAULT 🚨 */}
+        <div className="flex justify-center mt-4 relative z-10">
+          <button 
+            onClick={handleEnableNotifications}
+            className="flex items-center gap-2 text-zinc-500 hover:text-[#0088cc] transition-colors group"
+          >
+            <svg 
+              className="w-4 h-4 fill-current group-hover:scale-110 transition-transform" 
+              viewBox="0 0 24 24" 
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.223-.548.223l.188-2.85 5.18-4.686c.223-.195-.054-.285-.346-.086l-6.4 4.02-2.76-.86c-.6-.188-.61-.6.125-.89l10.8-4.16c.5-.195.945.105.786.883z"/>
+            </svg>
+            <span className="text-[10px] uppercase font-black tracking-widest underline decoration-zinc-700 underline-offset-4 group-hover:decoration-[#0088cc]">
+              Get Notifications on Telegram
+            </span>
+          </button>
+        </div>
+
       </div>
     );
   }
