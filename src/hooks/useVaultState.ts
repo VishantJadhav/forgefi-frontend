@@ -28,7 +28,7 @@ export function useVaultState() {
 
       // 🚨 UPGRADED TO V4 🚨
       const [userStakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake_v4"), publicKey.toBuffer()],
+        [Buffer.from("stake_v5"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
