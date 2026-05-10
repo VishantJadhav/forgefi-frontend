@@ -88,7 +88,7 @@ export default function BloodPactDashboard() {
 
       // 🚨 UPGRADED TO V4 🚨
       const [squadVaultPDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("squad_v4"), publicKey.toBuffer(), p2Key.toBuffer()],
+        [Buffer.from("squad_v5"), publicKey.toBuffer(), p2Key.toBuffer()],
         PROGRAM_ID
       );
 
