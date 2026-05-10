@@ -61,7 +61,7 @@ export default function LoneWolfDashboard() {
 
       // 🚨 UPGRADED TO V4 🚨
       const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake_v4"), publicKey.toBuffer()],
+        [Buffer.from("stake_v5"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
@@ -120,7 +120,7 @@ export default function LoneWolfDashboard() {
 
           // 🚨 UPGRADED TO V4 🚨
           const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-            [Buffer.from("stake_v4"), publicKey.toBuffer()],
+            [Buffer.from("stake_v5"), publicKey.toBuffer()],
             PROGRAM_ID
           );
 
@@ -172,7 +172,7 @@ export default function LoneWolfDashboard() {
 
       // 🚨 UPGRADED TO V4 🚨
       const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake_v4"), publicKey.toBuffer()],
+        [Buffer.from("stake_v5"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
@@ -207,7 +207,7 @@ export default function LoneWolfDashboard() {
 
       // 🚨 UPGRADED TO V4 🚨
       const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake_v4"), publicKey.toBuffer()],
+        [Buffer.from("stake_v5"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
@@ -242,7 +242,7 @@ export default function LoneWolfDashboard() {
 
       // 🚨 UPGRADED TO V4 🚨
       const [stakePDA] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("stake_v4"), publicKey.toBuffer()],
+        [Buffer.from("stake_v5"), publicKey.toBuffer()],
         PROGRAM_ID
       );
 
