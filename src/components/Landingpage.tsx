@@ -1,6 +1,7 @@
 import ForgeDashboard from './ForgeDashboard';
 import Leaderboard from './Leaderboard';
 import Graveyard from './Graveyard';
+import ForgeCanvas from './ForgeCanvas';
 
 export default function LandingPage() {
   return (
@@ -95,6 +96,10 @@ export default function LandingPage() {
         <div className="relative w-full h-8 my-8 flex items-center justify-center">
           <div className="absolute w-full h-[2px] bg-red-600 shadow-[0_0_20px_5px_rgba(220,38,38,0.7)]"></div>
           <div className="absolute w-full h-[1px] bg-red-300"></div>
+        </div>
+
+        <div>
+          <ForgeCanvas />
         </div>
 
         {/* The Dashboard */}
