@@ -99,7 +99,7 @@ export default function LandingPage() {
         </div>
 
         <div>
-          <ForgeCanvas />
+          <ForgeCanvas isStaked={false} />
         </div>
 
         {/* The Dashboard */}
