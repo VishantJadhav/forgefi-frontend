@@ -23,7 +23,7 @@ function RealIronBlock({ isStaked }: ForgeProps) {
       } else {
         // STAKED: Stop spinning and slam down violently
         // A lerp factor of 0.3 makes it crash down fast but retain a feeling of massive weight
-        anvilRef.current.position.y = THREE.MathUtils.lerp(anvilRef.current.position.y, -2.2, 0.3);
+        anvilRef.current.position.y = THREE.MathUtils.lerp(anvilRef.current.position.y, -1.5, 0.3);
       }
     }
   });
