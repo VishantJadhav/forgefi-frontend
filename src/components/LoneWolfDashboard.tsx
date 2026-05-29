@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 import DeadlineTimer from './DeadlineTimer';
 import IronMatrix from './IronMatrix';
-import ForgeCanvas from './ForgeCanvas'; // 🚨 NEW: Imported the 3D Engine
+import ForgeCanvas from './ForgeCanvas'; // 🚨 NEW: 3D Engine imported here
 import idl from '../idl/idl.json';
 
 import { useGeolocation, ALLOWED_DISTANCE_METERS, getDistanceInMeters } from '../hooks/useGeolocation';
@@ -27,11 +27,7 @@ export default function LoneWolfDashboard() {
   const [isStaking, setIsStaking] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isBurning, setIsBurning] = useState(false);
-
-  //Added to resolve user's SOL after designated days are met 
   const [isResolving, setIsResolving] = useState(false);
-
-  //Added for one day rest
   const [isResting, setIsResting] = useState(false);
 
   const telegramBotUsername = "ForgeFi_Bot"; 
@@ -230,7 +226,7 @@ export default function LoneWolfDashboard() {
   };
 
   // ==========================================
-  // 5. DEPLOY TACTICAL REST
+  // DEPLOY TACTICAL REST
   // ==========================================
   const handleTacticalRest = async () => {
     if (!connected || !publicKey || !activeStake) return;
@@ -272,12 +268,12 @@ export default function LoneWolfDashboard() {
   };
 
   // ==========================================
-  // HELPER: RENDER DYNAMIC UI PANELS
+  // HELPER: RENDER UI CARDS DYNAMICALLY
   // ==========================================
-  const renderDashboardPanels = () => {
+  const renderDashboardUI = () => {
     if (isChecking) {
       return (
-        <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-12 text-center text-zinc-500 font-mono uppercase tracking-widest animate-pulse shadow-2xl relative z-10 w-full">
+        <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-12 text-center text-zinc-500 font-mono uppercase tracking-widest animate-pulse shadow-2xl relative z-10">
           Scanning Blockchain...
         </div>
       );
@@ -286,7 +282,7 @@ export default function LoneWolfDashboard() {
     if (activeStake) {
       if (activeStake.missedDays === 999) {
         return (
-          <div className="border-2 border-red-900 bg-red-950/40 backdrop-blur-md p-8 shadow-[0_0_40px_rgba(220,38,38,0.3)] flex flex-col items-center text-center relative overflow-hidden z-10 w-full">
+          <div className="border-2 border-red-900 bg-red-950/40 backdrop-blur-md p-8 shadow-[0_0_40px_rgba(220,38,38,0.3)] flex flex-col items-center text-center relative overflow-hidden z-10">
             <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/20 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
             <div className="w-16 h-16 bg-red-900/40 rounded-full flex items-center justify-center mb-6 border border-red-600 relative z-10 animate-pulse">
               <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -318,7 +314,7 @@ export default function LoneWolfDashboard() {
                             ((activeStake.stakeAmount / web3.LAMPORTS_PER_SOL) * 0.1 * activeStake.missedDays);
 
         return (
-          <div className="border-2 border-zinc-500 bg-zinc-900/80 backdrop-blur-md p-8 shadow-[0_0_40px_rgba(255,255,255,0.1)] flex flex-col items-center text-center relative overflow-hidden z-10 w-full">
+          <div className="border-2 border-zinc-500 bg-zinc-900/80 backdrop-blur-md p-8 shadow-[0_0_40px_rgba(255,255,255,0.1)] flex flex-col items-center text-center relative overflow-hidden z-10">
             <h2 className="text-3xl font-black text-white uppercase tracking-widest mb-2 relative z-10">
               Protocol Concluded
             </h2>
@@ -348,7 +344,7 @@ export default function LoneWolfDashboard() {
       }
 
       return (
-        <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-10 w-full">
+        <div className="border-2 border-red-900 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_30px_rgba(220,38,38,0.15)] flex flex-col gap-6 relative overflow-hidden z-10">
           <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
           
           <div className="flex justify-between items-center border-b-2 border-zinc-900 pb-4 relative z-10">
@@ -459,7 +455,7 @@ export default function LoneWolfDashboard() {
     }
 
     return (
-      <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden z-10 w-full">
+      <div className="border-2 border-zinc-900 bg-black/60 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden z-10">
         <div className="flex flex-col gap-3 relative z-10">
           <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">Select Commitment</label>
           <div className="grid grid-cols-2 gap-2">
@@ -499,16 +495,18 @@ export default function LoneWolfDashboard() {
   // MASTER LAYOUT: 3D Canvas + Dynamic UI
   // ==========================================
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
-      {/* The Persistent 3D Canvas 
-        It knows the user is staked if activeStake exists.
-      */}
-      <div className="w-full rounded border-2 border-zinc-900 overflow-hidden bg-black/80 shadow-2xl relative z-20">
-        <ForgeCanvas isStaked={!!activeStake} />
+    <div className="w-full max-w-2xl mx-auto flex flex-col gap-4 relative z-20">
+      
+      {/* 🛡️ TOP HALF: THE CANVAS (Never Moves) */}
+      <div className="w-full rounded border-2 border-zinc-900 overflow-hidden bg-black shadow-2xl relative">
+        <ForgeCanvas isStaked={!!activeStake || isStaking} />
+      </div>
+      
+      {/* 🛡️ BOTTOM HALF: THE UI (Expands naturally downwards) */}
+      <div className="w-full">
+        {renderDashboardUI()}
       </div>
 
-      {/* The UI state changes seamlessly beneath it */}
-      {renderDashboardPanels()}
     </div>
   );
 }
