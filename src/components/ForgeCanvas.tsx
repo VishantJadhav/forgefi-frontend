@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Environment, Float, ContactShadows, useGLTF, PresentationControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -13,16 +13,14 @@ function RealIronBlock({ isStaked }: ForgeProps) {
   const { scene } = useGLTF('/anvil.glb');
   const anvilRef = useRef<THREE.Group>(null);
 
-  // The Physics Engine (Runs 60fps)
+  // The Physics Engine
   useFrame((state, delta) => {
     if (anvilRef.current) {
       if (!isStaked) {
-        // UNSTAKED: Slow, buttery spin and reset to normal height
         anvilRef.current.rotation.y += delta * 0.1;
         anvilRef.current.position.y = THREE.MathUtils.lerp(anvilRef.current.position.y, -1, 0.05);
       } else {
-        // STAKED: Stop spinning and slam down violently
-        // A lerp factor of 0.3 makes it crash down fast but retain a feeling of massive weight
+        // Slam down aggressively (Adjusted to -1.5 so it doesn't clip the bottom box!)
         anvilRef.current.position.y = THREE.MathUtils.lerp(anvilRef.current.position.y, -1.5, 0.3);
       }
     }
@@ -42,16 +40,8 @@ function RealIronBlock({ isStaked }: ForgeProps) {
   }, [scene]);
 
   return (
-    <PresentationControls 
-      global={false} cursor={true} snap={true} speed={1.5} zoom={1}
-      polar={[-Math.PI / 4, Math.PI / 4]} 
-    >
-      {/* If staked, we instantly kill the hovering Float effect by setting speeds to 0 */}
-      <Float 
-        speed={isStaked ? 0 : 2} 
-        rotationIntensity={isStaked ? 0 : 0.5} 
-        floatIntensity={isStaked ? 0 : 0.5}
-      >
+    <PresentationControls global={false} cursor={true} snap={true} speed={1.5} zoom={1} polar={[-Math.PI / 4, Math.PI / 4]}>
+      <Float speed={isStaked ? 0 : 2} rotationIntensity={isStaked ? 0 : 0.5} floatIntensity={isStaked ? 0 : 0.5}>
         <group ref={anvilRef}>
           <primitive object={scene} scale={1.5} position={[0, -1, 0]} />
         </group>
@@ -62,10 +52,23 @@ function RealIronBlock({ isStaked }: ForgeProps) {
 
 // 2. The Main Canvas Component
 export default function ForgeCanvas({ isStaked = false }: ForgeProps) {
-  // Dynamic Lighting Setup
-  const forgeColor = isStaked ? "#ff0000" : "#ff3b00"; // Shifts from orange to blood red
-  const rimColor = isStaked ? "#220000" : "#ffffff";   // Cold white moon dies, goes dark red
-  const ambientIntensity = isStaked ? 0.05 : 0.2;      // The whole room gets darker
+  // 🚨 NEW: Local override state to listen for the hackathon flare
+  const [slamOverride, setSlamOverride] = useState(false);
+
+  useEffect(() => {
+    // When the dashboard fires the event, trigger the animation instantly
+    const triggerSlam = () => setSlamOverride(true);
+    window.addEventListener('forge-slam', triggerSlam);
+    
+    return () => window.removeEventListener('forge-slam', triggerSlam);
+  }, []);
+
+  // If the database says they are staked, OR if they just triggered a new stake, slam it.
+  const finalStakedState = isStaked || slamOverride;
+
+  const forgeColor = finalStakedState ? "#ff0000" : "#ff3b00"; 
+  const rimColor = finalStakedState ? "#220000" : "#ffffff";   
+  const ambientIntensity = finalStakedState ? 0.05 : 0.2;      
 
   return (
     <div style={{ height: '450px', width: '100%', position: 'relative', cursor: 'grab' }}>
@@ -77,7 +80,8 @@ export default function ForgeCanvas({ isStaked = false }: ForgeProps) {
           <directionalLight position={[-5, -5, 5]} intensity={5} color={forgeColor} />
           <directionalLight position={[5, 10, -5]} intensity={2} color={rimColor} />
 
-          <RealIronBlock isStaked={isStaked} />
+          {/* Pass the combined state to the physics block */}
+          <RealIronBlock isStaked={finalStakedState} />
 
           <ContactShadows position={[0, -2.5, 0]} opacity={0.7} scale={10} blur={2.5} far={4} />
           <Environment preset="city" />
