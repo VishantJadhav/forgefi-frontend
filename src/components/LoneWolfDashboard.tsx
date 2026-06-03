@@ -78,6 +78,10 @@ export default function LoneWolfDashboard() {
 
       toast.success("Blood locked! The Forge awaits.");
       fetchStakeData(); 
+
+      // 🚨 NEW: Fire the global trigger to instantly slam the anvil!
+      window.dispatchEvent(new Event('forge-slam'));
+
     } catch (error) {
       console.error("Staking failed:", error);
       toast.error("Transaction rejected.");
