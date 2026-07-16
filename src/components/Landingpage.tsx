@@ -1,8 +1,13 @@
 import ForgeDashboard from './ForgeDashboard';
 import Leaderboard from './Leaderboard';
 import Graveyard from './Graveyard';
+import ForgeCanvas from './ForgeCanvas'; // 🚨 NEW: Imported the canvas back here
+import { useVaultState } from '../hooks/useVaultState';
 
 export default function LandingPage() {
+  // 🚨 NEW: We peek at the smart contract state directly from the landing page
+  const { activeStake } = useVaultState();
+
   return (
     <div className="w-full bg-black font-sans selection:bg-red-600 selection:text-white relative">
       
@@ -95,6 +100,11 @@ export default function LandingPage() {
         <div className="relative w-full h-8 my-8 flex items-center justify-center">
           <div className="absolute w-full h-[2px] bg-red-600 shadow-[0_0_20px_5px_rgba(220,38,38,0.7)]"></div>
           <div className="absolute w-full h-[1px] bg-red-300"></div>
+        </div>
+
+        {/* 🚨 THE 3D CANVAS IS BACK - Passing the real state into it! */}
+        <div className="w-full">
+          <ForgeCanvas isStaked={!!activeStake} />
         </div>
 
         {/* The Dashboard */}
